@@ -201,6 +201,46 @@ class HomeNotifier extends StateNotifier<HomeState> {
   }
 
   // ─────────────────────────────────────────────────────────
+  // connectToServer — از ServersScreen کلیک مستقیم
+  // ─────────────────────────────────────────────────────────
+
+  Future<void> connectToServer(ServerItem server) async {
+    if (state.isConnected || state.isConnecting) {
+      _vpn.disconnect();
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+    state = state.copyWith(activeServer: server, errorMessage: null);
+
+    if (server.configUri.isEmpty) {
+      state = state.copyWith(errorMessage: 'آدرس کانفیگ سرور خالی است');
+      return;
+    }
+    _emit(VpnConnectionStatus.connecting);
+
+    final result = await _vpn.connect(configUri: server.configUri);
+    if (!result.success) {
+      state = state.copyWith(errorMessage: result.error ?? 'اتصال ناموفق بود');
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // connectSmart — بهترین سرور بر اساس پینگ
+  // ─────────────────────────────────────────────────────────
+
+  Future<void> connectSmart() async {
+    final best = _ref.read(serversProvider.notifier).bestServer;
+    if (best != null) {
+      await connectToServer(best);
+    } else {
+      await _connect();
+    }
+  }
+
+  void _emit(VpnConnectionStatus s) {
+    state = state.copyWith(vpnStatus: s);
+  }
+
+  // ─────────────────────────────────────────────────────────
   // refresh stats از auth
   // ─────────────────────────────────────────────────────────
 
@@ -223,4 +263,14 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
 final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
   return HomeNotifier(ref, ref.watch(vpnServiceProvider));
+});
+
+/// پینگ واقعی سرور متصل — هر ۵ ثانیه آپدیت میشه
+final homePingProvider = StreamProvider<int>((ref) async* {
+  final vpn   = ref.watch(vpnServiceProvider);
+  final home  = ref.watch(homeProvider);
+  if (!home.isConnected) { yield 0; return; }
+
+  yield* Stream.periodic(const Duration(seconds: 5), (_) => 0)
+      .asyncMap((_) => vpn.getConnectedDelay());
 });

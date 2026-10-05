@@ -112,35 +112,47 @@ class ServerGroup {
 
 class ServersState {
   final bool isLoading;
+  final bool isPinging;
   final List<ServerGroup> groups;
   final String? selectedServerId;
   final String? expandedGroupId;
   final String? errorMessage;
+  /// Map<serverId, pingMs>
+  final Map<String, int> pings;
 
   const ServersState({
-    this.isLoading = false,
-    this.groups = const [],
+    this.isLoading        = false,
+    this.isPinging        = false,
+    this.groups           = const [],
     this.selectedServerId,
     this.expandedGroupId,
     this.errorMessage,
+    this.pings            = const {},
   });
 
   int get totalServers =>
       groups.fold(0, (sum, g) => sum + g.locations.length);
 
+  /// پینگ یک سرور — 0 یعنی هنوز پینگ نگرفته
+  int pingOf(String serverId) => pings[serverId] ?? 0;
+
   ServersState copyWith({
     bool?              isLoading,
+    bool?              isPinging,
     List<ServerGroup>? groups,
     String?            selectedServerId,
     String?            expandedGroupId,
     String?            errorMessage,
+    Map<String, int>?  pings,
   }) {
     return ServersState(
       isLoading:        isLoading        ?? this.isLoading,
+      isPinging:        isPinging        ?? this.isPinging,
       groups:           groups           ?? this.groups,
       selectedServerId: selectedServerId ?? this.selectedServerId,
       expandedGroupId:  expandedGroupId  ?? this.expandedGroupId,
       errorMessage:     errorMessage,
+      pings:            pings            ?? this.pings,
     );
   }
 }

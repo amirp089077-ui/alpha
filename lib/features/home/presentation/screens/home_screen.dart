@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/strings.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/theme_extension.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/haptics.dart';
@@ -15,6 +17,7 @@ import '../../../../core/widgets/status_badge.dart';
 import '../../data/models/home_models.dart';
 import '../../providers/home_provider.dart';
 import '../../../servers/data/models/server_models.dart';
+import '../../../servers/providers/servers_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -65,14 +68,27 @@ class _HomeAppBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isPinging = ref.watch(serversProvider).isPinging;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: Row(
         children: [
+          // دکمه سرورها
           CircleIconButton(
-            icon: Icons.refresh_rounded,
-            onTap: () {},
-            tooltip: S.serversRefresh,
+            icon: Icons.dns_rounded,
+            onTap: () => context.go(AppRoutes.servers),
+            tooltip: 'سرورها',
+          ),
+          const SizedBox(width: 10),
+          // دکمه ping
+          CircleIconButton(
+            icon: Icons.network_ping_rounded,
+            isLoading: isPinging,
+            onTap: () {
+              AppHaptics.light();
+              ref.read(serversProvider.notifier).fetchPings();
+            },
+            tooltip: 'بررسی پینگ',
           ),
           const Spacer(),
           // ALPHA VPN logotype (LTR)
@@ -352,35 +368,40 @@ class _StatusText extends StatelessWidget {
           const SizedBox(height: 8),
           // Server info
           if (state.activeServer != null)
-            Directionality(
-              textDirection: TextDirection.rtl,
-              child: RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: AppTypography.body.copyWith(color: colors.textSecondary),
-                  children: [
-                    TextSpan(text: state.activeServer!.name),
-                    if (state.activeServer!.badge == ServerBadge.b)
-                      const WidgetSpan(
-                        alignment: PlaceholderAlignment.middle,
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                          child: StatusBadge(type: BadgeType.b),
+            Consumer(builder: (context, ref, _) {
+              final pingAsync = ref.watch(homePingProvider);
+              final ping = pingAsync.valueOrNull ?? 0;
+              return Directionality(
+                textDirection: TextDirection.rtl,
+                child: RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: AppTypography.body.copyWith(color: colors.textSecondary),
+                    children: [
+                      TextSpan(text: state.activeServer!.name),
+                      if (state.activeServer!.badge == ServerBadge.b)
+                        const WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6),
+                            child: StatusBadge(type: BadgeType.b),
+                          ),
+                        ),
+                      const TextSpan(text: '  •  پینگ '),
+                      TextSpan(
+                        text: ping > 0 ? '$ping ms' : '...',
+                        style: TextStyle(
+                          fontFamily: 'Vazirmatn',
+                          color: ping > 0 && ping < 150
+                              ? colors.mint
+                              : colors.orange,
                         ),
                       ),
-                    const TextSpan(text: '  •  پینگ '),
-                    TextSpan(
-                      text: formatPingFa(state.pingMs),
-                      style: const TextStyle(
-                        fontFamily: 'Vazirmatn',
-                        color: Colors.white,
-                      ),
-                      children: const [],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            }),
           const SizedBox(height: 6),
           Text(
             '${S.homeUsage}  ${formatDataFa(state.usageMb / 1024)}',
@@ -515,6 +536,7 @@ class _ActiveServerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+      onTap: () => context.go(AppRoutes.servers),
       child: SizedBox(
         height: 68,
         child: Row(

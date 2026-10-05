@@ -128,6 +128,7 @@ class VpnService {
 
   // ── Delay ─────────────────────────────────────────────────
 
+  /// پینگ یک سرور — ms برمیگردونه، 9999 اگه fail شد
   Future<int> getDelay(String configUri) async {
     if (!_initialized) await initialize();
     try {
@@ -138,6 +139,27 @@ class VpnService {
     } catch (_) {
       return 9999;
     }
+  }
+
+  /// پینگ سرور متصل فعلی
+  Future<int> getConnectedDelay() async {
+    if (!_initialized) return 9999;
+    try {
+      return await _flutterV2ray.getConnectedServerDelay();
+    } catch (_) {
+      return 9999;
+    }
+  }
+
+  /// پینگ موازی چند سرور — Map<serverId, pingMs>
+  Future<Map<String, int>> pingAll(Map<String, String> serverConfigs) async {
+    if (!_initialized) await initialize();
+    final futures = serverConfigs.entries.map((e) async {
+      final ping = await getDelay(e.value);
+      return MapEntry(e.key, ping);
+    });
+    final results = await Future.wait(futures);
+    return Map.fromEntries(results);
   }
 
   void _emit(VpnConnectionStatus s) {

@@ -130,15 +130,18 @@ class ServerLocationTile extends StatelessWidget {
     required this.location,
     required this.isSelected,
     required this.onTap,
+    this.pingMs = 0,
   });
 
   final ServerLocation location;
   final bool isSelected;
   final VoidCallback onTap;
+  final int pingMs;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+    final effectivePing = pingMs > 0 ? pingMs : location.ping;
 
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -175,6 +178,10 @@ class ServerLocationTile extends StatelessWidget {
                     : null,
               ),
               const SizedBox(width: 12),
+
+              // Ping badge
+              _PingBadge(pingMs: effectivePing, colors: colors),
+              const SizedBox(width: 8),
 
               // Name + badge
               Expanded(
@@ -215,10 +222,12 @@ class SmartServerTile extends StatelessWidget {
     super.key,
     required this.isSelected,
     required this.onTap,
+    this.bestPingMs = 0,
   });
 
   final bool isSelected;
   final VoidCallback onTap;
+  final int bestPingMs;
 
   @override
   Widget build(BuildContext context) {
@@ -258,6 +267,12 @@ class SmartServerTile extends StatelessWidget {
                   : null,
             ),
             const SizedBox(width: 12),
+
+            // Ping badge if pinging done
+            if (bestPingMs > 0) ...[
+              _PingBadge(pingMs: bestPingMs, colors: colors),
+              const SizedBox(width: 8),
+            ],
 
             // Text
             Expanded(
@@ -316,6 +331,46 @@ class _LocationChip extends StatelessWidget {
         '${count.toString()} لوکیشن',
         style: AppTypography.caption.copyWith(color: colors.chipText),
         textDirection: TextDirection.rtl,
+      ),
+    );
+  }
+}
+
+// ── Ping badge ────────────────────────────────────────────────────────────────
+
+class _PingBadge extends StatelessWidget {
+  const _PingBadge({required this.pingMs, required this.colors});
+  final int pingMs;
+  final AppColors colors;
+
+  Color get _color {
+    if (pingMs <= 0 || pingMs >= 9999) return colors.textTertiary;
+    if (pingMs < 150) return colors.mint;
+    if (pingMs < 300) return colors.orange;
+    return colors.orange;
+  }
+
+  String get _label {
+    if (pingMs <= 0 || pingMs >= 9999) return '—';
+    return '${pingMs.toString()} ms';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: _color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _color.withValues(alpha: 0.4), width: 1),
+      ),
+      child: Text(
+        _label,
+        style: AppTypography.micro.copyWith(
+          color: _color,
+          fontFamily: 'Vazirmatn',
+        ),
+        textDirection: TextDirection.ltr,
       ),
     );
   }
