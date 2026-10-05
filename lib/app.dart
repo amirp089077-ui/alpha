@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/settings/providers/settings_provider.dart';
+import 'features/settings/providers/config_provider.dart';
 
 class AlphaVpnApp extends ConsumerWidget {
   const AlphaVpnApp({super.key});
@@ -11,6 +12,8 @@ class AlphaVpnApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    // config رو eager load می‌کنیم — splash منتظرش نیست ولی کش می‌شه
+    ref.watch(appConfigProvider);
 
     return MaterialApp.router(
       title: 'ALPHA VPN',

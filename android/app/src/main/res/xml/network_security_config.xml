@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+
+    <!--
+        اجازه HTTP cleartext فقط برای سرور AlphaVPN
+        در production حتماً SSL بذار و این رو حذف کن
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">179.237.79.75</domain>
+    </domain-config>
+
+    <!-- بقیه ترافیک: HTTPS فقط -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+</network-security-config>

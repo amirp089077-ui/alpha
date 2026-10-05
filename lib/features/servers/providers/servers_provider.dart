@@ -1,35 +1,42 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/mock/mock_servers_repository.dart';
-import '../data/models/server_models.dart';
 
-final serversRepositoryProvider = Provider((_) => MockServersRepository());
+import '../../../core/services/api_service.dart';
+import '../data/models/server_models.dart';
+import '../data/repository/servers_repository.dart';
+
+// ── Repository provider ────────────────────────────────────
+
+final serversRepositoryProvider = Provider<ServersRepository>(
+  (_) => ServersRepository(),
+);
+
+// ── Notifier ───────────────────────────────────────────────
 
 class ServersNotifier extends StateNotifier<ServersState> {
-  final MockServersRepository _repo;
+  final ServersRepository _repo;
+
   ServersNotifier(this._repo) : super(const ServersState()) {
     loadServers();
   }
 
   Future<void> loadServers() async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final groups = await _repo.fetchServers();
       state = state.copyWith(isLoading: false, groups: groups);
-    } on Exception catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    } on NetworkException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
+    } on ApiException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'خطا در دریافت سرورها',
+      );
     }
   }
 
-  Future<void> refresh() async {
-    state = state.copyWith(isLoading: true);
-    try {
-      await _repo.refreshPings();
-      final groups = await _repo.fetchServers();
-      state = state.copyWith(isLoading: false, groups: groups);
-    } on Exception catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
-    }
-  }
+  Future<void> refresh() => loadServers();
 
   void toggleGroup(String groupId) {
     final current = state.expandedGroupId;
@@ -47,6 +54,22 @@ class ServersNotifier extends StateNotifier<ServersState> {
   }
 }
 
-final serversProvider = StateNotifierProvider<ServersNotifier, ServersState>((ref) {
+// ── Provider ───────────────────────────────────────────────
+
+final serversProvider =
+    StateNotifierProvider<ServersNotifier, ServersState>((ref) {
   return ServersNotifier(ref.watch(serversRepositoryProvider));
+});
+
+/// سرور انتخاب‌شده فعلی
+final selectedServerProvider = Provider<ServerItem?>((ref) {
+  final state = ref.watch(serversProvider);
+  final id = state.selectedServerId;
+  if (id == null || id == 'smart') return null;
+  for (final group in state.groups) {
+    try {
+      return group.locations.firstWhere((s) => s.id == id);
+    } catch (_) {}
+  }
+  return null;
 });

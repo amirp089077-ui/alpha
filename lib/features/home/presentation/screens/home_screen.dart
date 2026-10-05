@@ -306,19 +306,21 @@ class _StatusText extends StatelessWidget {
 
   String get _statusLabel {
     switch (state.vpnStatus) {
-      case VpnStatus.connected:    return S.homeConnected;
-      case VpnStatus.connecting:   return S.homeConnecting;
+      case VpnStatus.connected:     return S.homeConnected;
+      case VpnStatus.connecting:    return S.homeConnecting;
       case VpnStatus.disconnecting: return S.homeDisconnecting;
-      case VpnStatus.disconnected: return S.homeNotConnected;
+      case VpnStatus.disconnected:  return S.homeNotConnected;
+      case VpnStatus.error:         return state.errorMessage ?? 'خطا در اتصال';
     }
   }
 
   Color _statusColor(AppColors c) {
     switch (state.vpnStatus) {
-      case VpnStatus.connected:    return c.mint;
-      case VpnStatus.connecting:   return c.blue;
+      case VpnStatus.connected:     return c.mint;
+      case VpnStatus.connecting:    return c.blue;
       case VpnStatus.disconnecting: return c.orange;
-      case VpnStatus.disconnected: return c.textSecondary;
+      case VpnStatus.disconnected:  return c.textSecondary;
+      case VpnStatus.error:         return c.orange;
     }
   }
 

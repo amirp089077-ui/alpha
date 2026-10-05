@@ -1,19 +1,22 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/widgets/app_logo_mark.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../auth/data/models/auth_models.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _logoCtrl;
   late AnimationController _textCtrl;
@@ -71,8 +74,38 @@ class _SplashScreenState extends State<SplashScreen>
     _logoCtrl.forward();
     await Future.delayed(const Duration(milliseconds: 400));
     _textCtrl.forward();
-    await Future.delayed(const Duration(milliseconds: 2200));
-    if (mounted) context.go(AppRoutes.login);
+
+    // حداقل زمان نمایش splash + منتظر auth و config
+    await Future.wait([
+      Future.delayed(const Duration(milliseconds: 1800)),
+      _waitForAuth(),
+    ]);
+
+    if (!mounted) return;
+    _navigate();
+  }
+
+  /// منتظر می‌ماند تا AuthNotifier وضعیت اولیه‌اش رو مشخص کنه
+  Future<void> _waitForAuth() async {
+    // اگر هنوز initial یا loading است صبر می‌کنیم
+    final completer = Future.doWhile(() async {
+      final status = ref.read(authProvider).status;
+      if (status == AuthStatus.initial || status == AuthStatus.loading) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        return true;
+      }
+      return false;
+    });
+    await completer;
+  }
+
+  void _navigate() {
+    final authStatus = ref.read(authProvider).status;
+    if (authStatus == AuthStatus.authenticated) {
+      context.go(AppRoutes.home);
+    } else {
+      context.go(AppRoutes.login);
+    }
   }
 
   @override

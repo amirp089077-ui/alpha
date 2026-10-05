@@ -39,6 +39,15 @@ dependencies:
   # Intl
   intl: ^0.20.3
 
+  # HTTP client
+  http: ^1.2.2
+
+  # Secure token storage
+  flutter_secure_storage: ^9.2.2
+
+  # VPN — VLESS/VMess/Trojan via V2Ray core
+  flutter_v2ray: ^1.0.10
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
