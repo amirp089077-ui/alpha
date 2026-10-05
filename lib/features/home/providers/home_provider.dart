@@ -6,7 +6,6 @@ import '../data/models/home_models.dart';
 import '../../servers/data/models/server_models.dart';
 import '../../servers/providers/servers_provider.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../settings/providers/settings_provider.dart';
 
 // ── VpnService provider ────────────────────────────────────
 
@@ -145,16 +144,9 @@ class HomeNotifier extends StateNotifier<HomeState> {
       errorMessage:  null,
     );
 
-    // تنظیمات bypass از settings provider
-    final bypassIran = _ref.read(settingsProvider).bypassIranSites;
-    final whitelistedApps =
-        _ref.read(settingsProvider).whitelistedApps.toList();
-
     final result = await _vpn.connect(
-      configUri:   server.configUri,
-      remark:      server.displayName,
-      bypassIran:  bypassIran,
-      blockedApps: whitelistedApps.isNotEmpty ? whitelistedApps : null,
+      configUri: server.configUri,
+      remark:    server.displayName,
     );
 
     if (result.success) {
