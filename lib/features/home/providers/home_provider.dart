@@ -80,8 +80,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
   void _onVpnStats(VpnStats stats) {
     state = state.copyWith(
-      uploadBytes:   stats.uploadBytes,
-      downloadBytes: stats.downloadBytes,
+      uploadBytes:   stats.upload,
+      downloadBytes: stats.download,
     );
   }
 
@@ -146,12 +146,9 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
     final result = await _vpn.connect(
       configUri: server.configUri,
-      remark:    server.displayName,
     );
 
-    if (result.success) {
-      state = state.copyWith(pingMs: result.pingMs);
-    } else {
+    if (!result.success) {
       state = state.copyWith(
         errorMessage: result.error ?? 'اتصال ناموفق بود',
       );
@@ -163,7 +160,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
   // ─────────────────────────────────────────────────────────
 
   Future<void> _disconnect() async {
-    await _vpn.disconnect();
+    _vpn.disconnect();
   }
 
   // ─────────────────────────────────────────────────────────
