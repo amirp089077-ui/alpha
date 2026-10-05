@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/l10n/strings.dart';
 import '../../../../core/theme/theme_extension.dart';
@@ -149,31 +149,31 @@ class _OrbSection extends ConsumerWidget {
                 gradient: RadialGradient(
                   colors: isConnected
                       ? [
-                          const Color(0xFF1D4A60).withOpacity(0.9),
-                          const Color(0xFF0D1E2C).withOpacity(0.85),
+                          const Color(0xFF1D4A60).withValues(alpha: 0.9),
+                          const Color(0xFF0D1E2C).withValues(alpha: 0.85),
                         ]
                       : [
-                          const Color(0xFF1A3346).withOpacity(0.85),
-                          const Color(0xFF0D1824).withOpacity(0.80),
+                          const Color(0xFF1A3346).withValues(alpha: 0.85),
+                          const Color(0xFF0D1824).withValues(alpha: 0.80),
                         ],
                 ),
                 border: Border.all(
                   color: isConnected
-                      ? colors.mint.withOpacity(0.25)
-                      : Colors.white.withOpacity(0.10),
+                      ? colors.mint.withValues(alpha: 0.25)
+                      : Colors.white.withValues(alpha: 0.10),
                   width: 1.5,
                 ),
                 boxShadow: isConnected
                     ? [
                         BoxShadow(
-                          color: colors.mint.withOpacity(0.20),
+                          color: colors.mint.withValues(alpha: 0.20),
                           blurRadius: 40,
                           spreadRadius: 8,
                         )
                       ]
                     : [
                         BoxShadow(
-                          color: colors.blue.withOpacity(0.15),
+                          color: colors.blue.withValues(alpha: 0.15),
                           blurRadius: 30,
                           spreadRadius: 4,
                         )
@@ -195,7 +195,7 @@ class _OrbSection extends ConsumerWidget {
                 height: 190,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.30),
+                  color: Colors.black.withValues(alpha: 0.30),
                 ),
                 child: const Center(
                   child: CircularProgressIndicator(
@@ -265,8 +265,8 @@ class _OrbitRingState extends State<_OrbitRing>
         shape: BoxShape.circle,
         border: Border.all(
           color: widget.isConnected
-              ? widget.colors.mint.withOpacity(0.35)
-              : widget.colors.blue.withOpacity(0.25),
+              ? widget.colors.mint.withValues(alpha: 0.35)
+              : widget.colors.blue.withValues(alpha: 0.25),
           width: 1,
         ),
       ),
@@ -285,7 +285,7 @@ class _OrbitRingState extends State<_OrbitRing>
                 boxShadow: [
                   BoxShadow(
                     color: (widget.isConnected ? widget.colors.mint : widget.colors.blue)
-                        .withOpacity(0.8),
+                        .withValues(alpha: 0.8),
                     blurRadius: 6,
                   )
                 ],
@@ -366,10 +366,10 @@ class _StatusText extends StatelessWidget {
                           child: StatusBadge(type: BadgeType.b),
                         ),
                       ),
-                    TextSpan(text: '  •  پینگ '),
+                    const TextSpan(text: '  •  پینگ '),
                     TextSpan(
                       text: formatPingFa(state.pingMs),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontFamily: 'Vazirmatn',
                         color: Colors.white,
                       ),

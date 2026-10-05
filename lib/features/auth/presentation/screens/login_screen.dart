@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -77,9 +77,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: Scaffold(
         resizeToAvoidBottomInset: true,
         body: Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: RadialGradient(
-              center: const Alignment(-0.7, -0.8),
+              center: Alignment(-0.7, -0.8),
               radius: 1.5,
               colors: [
                 AppColorsLight.bgLight1,
@@ -140,7 +140,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF1B5E7A).withOpacity(0.10),
+                          color: const Color(0xFF1B5E7A).withValues(alpha: 0.10),
                           blurRadius: 30,
                           offset: const Offset(0, 10),
                         ),
@@ -246,7 +246,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
+                        const Text(
                           S.loginSupportArrow,
                           style: TextStyle(
                             color: AppColorsLight.teal,

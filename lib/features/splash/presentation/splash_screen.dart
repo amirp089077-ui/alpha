@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/router/app_router.dart';
@@ -118,7 +118,7 @@ class _SplashScreenState extends State<SplashScreen>
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          AppColorsLight.bgLight1.withOpacity(0.6),
+                          AppColorsLight.bgLight1.withValues(alpha: 0.6),
                           Colors.transparent,
                         ],
                       ),
@@ -251,7 +251,7 @@ class _Dot extends StatelessWidget {
       height: active ? 10 : 8,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: active ? color : color.withOpacity(0.35),
+        color: active ? color : color.withValues(alpha: 0.35),
       ),
     );
   }

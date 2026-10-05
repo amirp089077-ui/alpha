@@ -1,7 +1,7 @@
 import '../models/server_models.dart';
 
 class MockServersRepository {
-  static final List<ServerGroup> _groups = [
+  static const List<ServerGroup> _groups = [
     ServerGroup(
       id: 'uk',
       country: 'انگلیس',

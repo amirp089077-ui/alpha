@@ -34,7 +34,7 @@ class AppLogoMark extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: colors.blue.withOpacity(0.30),
+                    color: colors.blue.withValues(alpha: 0.30),
                     blurRadius: 32,
                     spreadRadius: 4,
                   ),
@@ -51,18 +51,18 @@ class AppLogoMark extends StatelessWidget {
               gradient: RadialGradient(
                 colors: colors.isLight
                     ? [
-                        Colors.white.withOpacity(0.85),
-                        const Color(0xFFD8EEF5).withOpacity(0.6),
+                        Colors.white.withValues(alpha: 0.85),
+                        const Color(0xFFD8EEF5).withValues(alpha: 0.6),
                       ]
                     : [
-                        const Color(0xFF1A3A50).withOpacity(0.85),
-                        const Color(0xFF0D1E2C).withOpacity(0.7),
+                        const Color(0xFF1A3A50).withValues(alpha: 0.85),
+                        const Color(0xFF0D1E2C).withValues(alpha: 0.7),
                       ],
               ),
               border: Border.all(
                 color: colors.isLight
-                    ? Colors.white.withOpacity(0.6)
-                    : Colors.white.withOpacity(0.12),
+                    ? Colors.white.withValues(alpha: 0.6)
+                    : Colors.white.withValues(alpha: 0.12),
                 width: 1.5,
               ),
             ),
@@ -96,7 +96,6 @@ class _RingPainter extends CustomPainter {
     final radius = (size.width / 2) - ringWidth / 2;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    // Main thin ring: blue top-left → grey → orange bottom-right
     final ringPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = ringWidth
@@ -115,7 +114,6 @@ class _RingPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawCircle(center, radius, ringPaint);
 
-    // Thick orange arc at bottom-right (highlight)
     final arcPaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = ringWidth * 2.5
@@ -124,8 +122,8 @@ class _RingPainter extends CustomPainter {
       ..color = const Color(0xFFF0693A);
     canvas.drawArc(
       rect,
-      math.pi * 0.55,   // start: ~bottom-right
-      math.pi * 0.18,   // sweep
+      math.pi * 0.55,
+      math.pi * 0.18,
       false,
       arcPaint,
     );
@@ -146,7 +144,6 @@ class _AlphaSymbolPainter extends CustomPainter {
     final h = size.height;
     final cx = w / 2;
 
-    // ── Blue/teal left wing of the "A" ──────────────────────────────
     final bluePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * 0.10
@@ -167,7 +164,6 @@ class _AlphaSymbolPainter extends CustomPainter {
       ..quadraticBezierTo(cx + w * 0.42, h * 0.95, cx + w * 0.48, h * 0.88);
     canvas.drawPath(rightPath, bluePaint);
 
-    // ── Orange V bottom ──────────────────────────────────────────────
     final orangePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = w * 0.09
@@ -182,13 +178,12 @@ class _AlphaSymbolPainter extends CustomPainter {
       ..quadraticBezierTo(cx, h * 0.78, cx + w * 0.28, h * 0.52);
     canvas.drawPath(vPath, orangePaint);
 
-    // ── Glow on the blue paths (light effect) ───────────────────────
     if (!colors.isLight) {
       final glowPaint = Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = w * 0.18
         ..strokeCap = StrokeCap.round
-        ..color = const Color(0xFF4FB3E0).withOpacity(0.18)
+        ..color = const Color(0xFF4FB3E0).withValues(alpha: 0.18)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
         ..isAntiAlias = true;
       canvas.drawPath(leftPath, glowPaint);

@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/theme_extension.dart';
 
@@ -39,9 +39,9 @@ class _GradientBackgroundState extends State<GradientBackground>
     final rng = math.Random(42);
     _stars = List.generate(35, (_) {
       return _Star(
-        x: rng.nextDouble(),
-        y: rng.nextDouble(),
-        size: 1.0 + rng.nextDouble(),
+        x:       rng.nextDouble(),
+        y:       rng.nextDouble(),
+        size:    1.0 + rng.nextDouble(),
         opacity: 0.10 + rng.nextDouble() * 0.25,
       );
     });
@@ -72,12 +72,15 @@ class _GradientBackgroundState extends State<GradientBackground>
         topGlow = colors.glowConnected;
         break;
       case GlowMode.warning:
-        topGlow = colors.orange.withOpacity(0.30);
+        topGlow = colors.orange.withValues(alpha: 0.30);
         break;
       case GlowMode.neutral:
         topGlow = colors.glowBlue;
         break;
     }
+
+    // Target alpha: if animations disabled keep the base color's alpha, else force 0.35
+    final targetAlpha = disableAnims ? topGlow.a : 0.35;
 
     return Stack(
       fit: StackFit.expand,
@@ -99,7 +102,7 @@ class _GradientBackgroundState extends State<GradientBackground>
           top: -80,
           left: -80,
           child: TweenAnimationBuilder<Color?>(
-            tween: ColorTween(end: topGlow.withOpacity(disableAnims ? topGlow.opacity : 0.35)),
+            tween: ColorTween(end: topGlow.withValues(alpha: targetAlpha)),
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeOutCubic,
             builder: (_, color, __) => Container(
@@ -127,7 +130,7 @@ class _GradientBackgroundState extends State<GradientBackground>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    colors.glowWarm.withOpacity(0.25),
+                    colors.glowWarm.withValues(alpha: 0.25),
                     Colors.transparent,
                   ],
                 ),
@@ -146,6 +149,7 @@ class _GradientBackgroundState extends State<GradientBackground>
   }
 }
 
+// ─── Star data ────────────────────────────────────────────────────────────────
 class _Star {
   final double x, y, size, opacity;
   const _Star({
@@ -156,6 +160,7 @@ class _Star {
   });
 }
 
+// ─── Stars painter ────────────────────────────────────────────────────────────
 class _StarsPainter extends CustomPainter {
   final List<_Star> stars;
   _StarsPainter(this.stars);
@@ -164,7 +169,7 @@ class _StarsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (final s in stars) {
       final paint = Paint()
-        ..color = Colors.white.withOpacity(s.opacity)
+        ..color = Colors.white.withValues(alpha: s.opacity)
         ..style = PaintingStyle.fill;
       canvas.drawCircle(
         Offset(s.x * size.width, s.y * size.height),

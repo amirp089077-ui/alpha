@@ -1,4 +1,4 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/theme_extension.dart';
 import '../theme/typography.dart';
@@ -165,7 +165,7 @@ class _GaugePainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = strokeWidth + 3
         ..strokeCap = StrokeCap.round
-        ..color = const Color(0xFF6B3F32).withOpacity(isLow ? 0.9 : 0.70);
+        ..color = const Color(0xFF6B3F32).withValues(alpha: isLow ? 0.9 : 0.70);
       canvas.drawArc(rect, -math.pi / 2, sweepAngle, false, haloPaint);
 
       // Gradient arc on top

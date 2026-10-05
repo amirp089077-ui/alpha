@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 enum BadgeType { b, ipv6 }
 
@@ -10,7 +10,7 @@ class StatusBadge extends StatelessWidget {
   factory StatusBadge.fromServerBadge(dynamic badge) {
     // badge is ServerBadge enum from server_models
     // Avoiding import cycle – we pass the enum value's index
-    return StatusBadge(type: BadgeType.b);
+    return const StatusBadge(type: BadgeType.b);
   }
 
   @override
@@ -60,7 +60,7 @@ class _Ipv6Badge extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF2FA84F).withOpacity(0.35),
+            color: const Color(0xFF2FA84F).withValues(alpha: 0.35),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

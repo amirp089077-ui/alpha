@@ -29,8 +29,8 @@ class AppTheme {
           systemNavigationBarIconBrightness: Brightness.light,
         ),
       ),
-      splashColor: Colors.white.withOpacity(0.04),
-      highlightColor: Colors.white.withOpacity(0.02),
+      splashColor: Colors.white.withValues(alpha: 0.04),
+      highlightColor: Colors.white.withValues(alpha: 0.02),
       dividerColor: AppColorsDark.divider,
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) =>
@@ -70,8 +70,8 @@ class AppTheme {
           systemNavigationBarIconBrightness: Brightness.dark,
         ),
       ),
-      splashColor: AppColorsLight.teal.withOpacity(0.06),
-      highlightColor: AppColorsLight.teal.withOpacity(0.03),
+      splashColor: AppColorsLight.teal.withValues(alpha: 0.06),
+      highlightColor: AppColorsLight.teal.withValues(alpha: 0.03),
       dividerColor: AppColorsLight.cardBorder,
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) =>

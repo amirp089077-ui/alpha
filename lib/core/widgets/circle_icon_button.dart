@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../theme/theme_extension.dart';
 
 class CircleIconButton extends StatefulWidget {
@@ -60,7 +60,7 @@ class _CircleIconButtonState extends State<CircleIconButton>
     Widget iconWidget = Icon(
       widget.icon,
       size: widget.iconSize,
-      color: colors.isLight ? colors.textSecondary : Colors.white.withOpacity(0.85),
+      color: colors.isLight ? colors.textSecondary : Colors.white.withValues(alpha: 0.85),
     );
 
     if (widget.isLoading) {
@@ -75,7 +75,7 @@ class _CircleIconButtonState extends State<CircleIconButton>
       child: InkWell(
         onTap: widget.isLoading ? null : widget.onTap,
         borderRadius: BorderRadius.circular(widget.size / 2),
-        splashColor: colors.blue.withOpacity(0.15),
+        splashColor: colors.blue.withValues(alpha: 0.15),
         child: Ink(
           width: widget.size,
           height: widget.size,
@@ -83,7 +83,7 @@ class _CircleIconButtonState extends State<CircleIconButton>
             shape: BoxShape.circle,
             color: colors.isLight
                 ? Colors.white
-                : Colors.white.withOpacity(0.06),
+                : Colors.white.withValues(alpha: 0.06),
             border: Border.all(
               color: colors.cardBorder,
               width: 1.5,

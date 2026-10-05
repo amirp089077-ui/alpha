@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../theme/theme_extension.dart';
 import '../theme/typography.dart';
 
@@ -62,7 +62,7 @@ class _GradientButtonState extends State<GradientButton>
 
     final shadow = colors.isLight && !widget.isDisabled
         ? BoxShadow(
-            color: const Color(0xFFD4501A).withOpacity(0.25),
+            color: const Color(0xFFD4501A).withValues(alpha: 0.25),
             blurRadius: 20,
             offset: const Offset(0, 8),
           )

@@ -47,10 +47,10 @@ class ShimmerList extends StatelessWidget {
     return Column(
       children: List.generate(
         count,
-        (i) => ShimmerSkeleton(
+        (i) => const ShimmerSkeleton(
           height: 78,
           radius: 28,
-          margin: const EdgeInsets.only(bottom: 14),
+          margin: EdgeInsets.only(bottom: 14),
         ),
       ),
     );

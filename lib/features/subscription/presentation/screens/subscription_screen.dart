@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/l10n/strings.dart';
 import '../../../../core/theme/theme_extension.dart';
@@ -46,15 +46,15 @@ class SubscriptionScreen extends ConsumerWidget {
             }),
             Expanded(
               child: state.isLoading
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                  ? const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20),
                       child: Column(children: [
-                        const SizedBox(height: 16),
-                        const ShimmerSkeleton(height: 180, radius: 28),
-                        const SizedBox(height: 16),
-                        const ShimmerSkeleton(height: 200, radius: 28),
-                        const SizedBox(height: 16),
-                        const ShimmerSkeleton(height: 68, radius: 28),
+                        SizedBox(height: 16),
+                        ShimmerSkeleton(height: 180, radius: 28),
+                        SizedBox(height: 16),
+                        ShimmerSkeleton(height: 200, radius: 28),
+                        SizedBox(height: 16),
+                        ShimmerSkeleton(height: 68, radius: 28),
                       ]),
                     )
                   : state.subscription == null
@@ -365,7 +365,7 @@ class _GiftCodeCardState extends ConsumerState<_GiftCodeCard> {
                           decoration: BoxDecoration(
                             color: colors.isLight
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.05),
+                                : Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                                 color: colors.fieldBorder, width: 1),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../theme/theme_extension.dart';
 import '../theme/typography.dart';
 
@@ -35,7 +35,7 @@ class SettingsTile extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(12),
-            splashColor: colors.blue.withOpacity(0.06),
+            splashColor: colors.blue.withValues(alpha: 0.06),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
               child: Row(

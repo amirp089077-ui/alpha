@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/strings.dart';
@@ -316,7 +316,7 @@ class _ThemeSegment extends ConsumerWidget {
       decoration: BoxDecoration(
         color: colors.isLight
             ? const Color(0xFFEDF3F7)
-            : Colors.white.withOpacity(0.05),
+            : Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(25),
       ),
       child: Row(
