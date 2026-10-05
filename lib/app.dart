@@ -43,8 +43,8 @@ class AlphaVpnApp extends ConsumerWidget {
       builder: (context, child) {
         final mq = MediaQuery.of(context);
         final clampedScale = mq.textScaler.clamp(
-          minScaleFactor: 0.9,
-          maxScaleFactor: 1.2,
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.1,
         );
         return Directionality(
           textDirection: TextDirection.rtl,

@@ -76,3 +76,7 @@ flutter:
       fonts:
         - asset: assets/fonts/Poppins-SemiBold.ttf
           weight: 600
+    - family: IranSans
+      fonts:
+        - asset: assets/fonts/IranSans-Bold.ttf
+          weight: 700

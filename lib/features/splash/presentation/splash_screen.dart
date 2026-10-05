@@ -120,16 +120,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        systemNavigationBarColor: Colors.transparent,
+        statusBarColor:                    Colors.transparent,
+        statusBarIconBrightness:           Brightness.dark,
+        systemNavigationBarColor:          Colors.transparent,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
+        backgroundColor: AppColorsLight.bgBase,
         body: Container(
+          width: double.infinity,
+          height: double.infinity,
           decoration: const BoxDecoration(
             gradient: RadialGradient(
-              center: Alignment(-0.7, -0.8),
+              center: Alignment(0, -0.5),
               radius: 1.4,
               colors: [
                 AppColorsLight.bgLight1,
@@ -138,106 +141,79 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             ),
           ),
           child: SafeArea(
-            child: Stack(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Bottom-left subtle blue glow
-                Positioned(
-                  bottom: -40,
-                  left: -40,
-                  child: Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          AppColorsLight.bgLight1.withValues(alpha: 0.6),
-                          Colors.transparent,
-                        ],
-                      ),
+                const Spacer(flex: 3),
+
+                // ── Logo ─────────────────────────────────────
+                ScaleTransition(
+                  scale: _logoScale,
+                  child: FadeTransition(
+                    opacity: _logoOpacity,
+                    child: const AppLogoMark(
+                      size: 110,
+                      ringWidth: 2.5,
+                      showGlow: false,
                     ),
                   ),
                 ),
 
-                Column(
-                  children: [
-                    const Spacer(flex: 3),
+                const SizedBox(height: 28),
 
-                    // ── Logo ───────────────────────────────────────────
-                    ScaleTransition(
-                      scale: _logoScale,
-                      child: FadeTransition(
-                        opacity: _logoOpacity,
-                        child: const AppLogoMark(
-                          size: 140,
-                          ringWidth: 3,
-                          showGlow: false,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // ── App name ───────────────────────────────────────
-                    FadeTransition(
-                      opacity: _textOpacity,
-                      child: SlideTransition(
-                        position: _textSlide,
-                        child: Column(
-                          children: [
-                            // "ALPHA VPN" – LTR logotype
-                            Directionality(
-                              textDirection: TextDirection.ltr,
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'ALPHA ',
-                                      style: AppTypography.logoLatin.copyWith(
-                                        color: AppColorsLight.textPrimary,
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: 'VPN',
-                                      style: AppTypography.logoLatin.copyWith(
-                                        color: AppColorsLight.teal,
-                                        fontSize: 26,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
+                // ── App name ──────────────────────────────────
+                FadeTransition(
+                  opacity: _textOpacity,
+                  child: SlideTransition(
+                    position: _textSlide,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Directionality(
+                          textDirection: TextDirection.ltr,
+                          child: RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'ALPHA ',
+                                  style: AppTypography.logoLatin.copyWith(
+                                    color: AppColorsLight.textPrimary,
+                                  ),
                                 ),
-                              ),
+                                TextSpan(
+                                  text: 'VPN',
+                                  style: AppTypography.logoLatin.copyWith(
+                                    color: AppColorsLight.teal,
+                                  ),
+                                ),
+                              ],
                             ),
-
-                            const SizedBox(height: 10),
-
-                            // Slogan
-                            Text(
-                              'اینترنت آزاد، سریع و امن',
-                              style: AppTypography.body.copyWith(
-                                color: AppColorsLight.textSecondary,
-                              ),
-                              textDirection: TextDirection.rtl,
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'اینترنت آزاد، سریع و امن',
+                          style: AppTypography.body.copyWith(
+                            color: AppColorsLight.textSecondary,
+                          ),
+                          textDirection: TextDirection.rtl,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-
-                    const Spacer(flex: 4),
-
-                    // ── Page indicator dots ────────────────────────────
-                    FadeTransition(
-                      opacity: _textOpacity,
-                      child: _SplashDots(controller: _dotsCtrl),
-                    ),
-
-                    const SizedBox(height: 40),
-                  ],
+                  ),
                 ),
+
+                const Spacer(flex: 4),
+
+                // ── Dots ─────────────────────────────────────
+                FadeTransition(
+                  opacity: _textOpacity,
+                  child: _SplashDots(controller: _dotsCtrl),
+                ),
+
+                const SizedBox(height: 32),
               ],
             ),
           ),

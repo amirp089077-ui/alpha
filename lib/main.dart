@@ -12,12 +12,18 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Edge-to-edge + transparent bars
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // Edge-to-edge — محتوا پشت status/nav bar میره
+  // رنگ‌ها توسط AnnotatedRegion در هر صفحه ست میشن
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
+  );
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor:                   Colors.transparent,
-    systemNavigationBarColor:         Colors.transparent,
-    systemNavigationBarDividerColor:  Colors.transparent,
+    statusBarColor:                    Colors.transparent,
+    statusBarIconBrightness:           Brightness.light,
+    systemNavigationBarColor:          Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarDividerColor:   Colors.transparent,
   ));
 
   runApp(
