@@ -5,26 +5,23 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:           # اجرای دستی از تب Actions
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build APK & AAB
+    name: Build Release APK & AAB
     runs-on: ubuntu-latest
 
     steps:
-      # ── ۱. دریافت کد ─────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── ۲. نصب Java 17 (مورد نیاز Gradle) ───────────────────────────
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # ── ۳. نصب Flutter ───────────────────────────────────────────────
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -32,37 +29,17 @@ jobs:
           channel: stable
           cache: true
 
-      # ── ۴. نمایش نسخه برای دیباگ ─────────────────────────────────────
-      - name: Flutter version
-        run: flutter --version
-
-      # ── ۵. دریافت وابستگی‌ها ─────────────────────────────────────────
       - name: Get dependencies
         run: flutter pub get
 
-      # ── ۶. آنالیز کد ────────────────────────────────────────────────
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
-      # ── ۷. بیلد APK دیباگ ───────────────────────────────────────────
-      - name: Build debug APK
-        run: flutter build apk --debug
-
-      # ── ۸. بیلد APK ریلیز (unsigned) ────────────────────────────────
       - name: Build release APK
         run: flutter build apk --release
 
-      # ── ۹. بیلد AAB ریلیز (برای Google Play) ────────────────────────
       - name: Build release AAB
         run: flutter build appbundle --release
-
-      # ── ۱۰. آپلود آرتیفکت‌ها ────────────────────────────────────────
-      - name: Upload debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: alpha-vpn-debug-apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 7
 
       - name: Upload release APK
         uses: actions/upload-artifact@v4
@@ -78,7 +55,6 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
 
-  # ── جاب اختیاری: ساخت Release در GitHub هنگام تگ‌گذاری ──────────────
   release:
     name: GitHub Release
     needs: build
@@ -115,12 +91,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: "ALPHA VPN ${{ github.ref_name }}"
-          body: |
-            ## ALPHA VPN ${{ github.ref_name }}
-            
-            ### دانلود
-            - **APK**: برای نصب مستقیم روی اندروید
-            - **AAB**: برای آپلود در Google Play
           files: |
             build/app/outputs/flutter-apk/app-release.apk
             build/app/outputs/bundle/release/app-release.aab
