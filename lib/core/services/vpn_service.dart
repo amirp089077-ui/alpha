@@ -15,26 +15,21 @@ enum VpnConnectionStatus {
 }
 
 // ─────────────────────────────────────────────────────────────
-// VPN Stats (traffic)
+// VPN Stats
 // ─────────────────────────────────────────────────────────────
 
 class VpnStats {
   final int uploadBytes;
   final int downloadBytes;
-  final int pingMs;
 
-  const VpnStats({
-    this.uploadBytes  = 0,
-    this.downloadBytes = 0,
-    this.pingMs       = 0,
-  });
+  const VpnStats({this.uploadBytes = 0, this.downloadBytes = 0});
 
   double get uploadMb   => uploadBytes   / (1024 * 1024);
   double get downloadMb => downloadBytes / (1024 * 1024);
 }
 
 // ─────────────────────────────────────────────────────────────
-// VpnService — singleton wrapper روی flutter_v2ray
+// VpnService
 // ─────────────────────────────────────────────────────────────
 
 class VpnService {
@@ -42,11 +37,8 @@ class VpnService {
   factory VpnService() => _instance;
   VpnService._internal();
 
-  // ── State streams ──────────────────────────────────────────
-
-  final _statusController =
-      StreamController<VpnConnectionStatus>.broadcast();
-  final _statsController = StreamController<VpnStats>.broadcast();
+  final _statusController = StreamController<VpnConnectionStatus>.broadcast();
+  final _statsController  = StreamController<VpnStats>.broadcast();
 
   Stream<VpnConnectionStatus> get statusStream => _statusController.stream;
   Stream<VpnStats>            get statsStream  => _statsController.stream;
@@ -54,56 +46,32 @@ class VpnService {
   VpnConnectionStatus _status = VpnConnectionStatus.disconnected;
   VpnConnectionStatus get status => _status;
 
-  // ── flutter_v2ray instance ─────────────────────────────────
-
   late final FlutterV2ray _v2ray;
   bool _initialized = false;
 
-  // ─────────────────────────────────────────────────────────
-  // Init
-  // ─────────────────────────────────────────────────────────
+  // ── Init ─────────────────────────────────────────────────
 
   Future<void> initialize() async {
     if (_initialized) return;
-    _v2ray = FlutterV2ray(
-      onStatusChanged: _onStatusChanged,
-    );
+    _v2ray = FlutterV2ray(onStatusChanged: _onStatusChanged);
     await _v2ray.initializeV2Ray();
     _initialized = true;
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Status callback از flutter_v2ray
-  // ─────────────────────────────────────────────────────────
+  // ── Status callback ───────────────────────────────────────
 
   void _onStatusChanged(V2RayStatus v2status) {
-    final upload   = v2status.uploadSpeed;
-    final download = v2status.downloadSpeed;
-
-    // stats
     _statsController.add(VpnStats(
-      uploadBytes:   (upload   * 1024).round(),
-      downloadBytes: (download * 1024).round(),
+      uploadBytes:   (v2status.uploadSpeed   * 1024).round(),
+      downloadBytes: (v2status.downloadSpeed * 1024).round(),
     ));
 
-    // وضعیت
     VpnConnectionStatus newStatus;
     switch (v2status.state) {
-      case 'CONNECTED':
-        newStatus = VpnConnectionStatus.connected;
-        break;
-      case 'CONNECTING':
-        newStatus = VpnConnectionStatus.connecting;
-        break;
-      case 'DISCONNECTING':
-        newStatus = VpnConnectionStatus.disconnecting;
-        break;
-      case 'STOPPED':
-      case 'DISCONNECTED':
-        newStatus = VpnConnectionStatus.disconnected;
-        break;
-      default:
-        newStatus = VpnConnectionStatus.disconnected;
+      case 'CONNECTED':      newStatus = VpnConnectionStatus.connected;     break;
+      case 'CONNECTING':     newStatus = VpnConnectionStatus.connecting;    break;
+      case 'DISCONNECTING':  newStatus = VpnConnectionStatus.disconnecting; break;
+      default:               newStatus = VpnConnectionStatus.disconnected;
     }
 
     if (newStatus != _status) {
@@ -112,88 +80,144 @@ class VpnService {
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Request VPN permission (Android)
-  // ─────────────────────────────────────────────────────────
+  // ── URI cleaner — فقط پارامترهای خالی حذف میشن ──────────
+  // fragment (#remark) دست نخورده می‌مونه
 
-  Future<bool> requestPermission() async {
-    return await _v2ray.requestPermission();
+  String _cleanUri(String uri) {
+    try {
+      final hashIdx  = uri.indexOf('#');
+      final fragment = hashIdx >= 0 ? uri.substring(hashIdx + 1) : '';
+      final base     = hashIdx >= 0 ? uri.substring(0, hashIdx)  : uri;
+
+      final u       = Uri.parse(base);
+      final cleaned = Map<String, String>.fromEntries(
+        u.queryParameters.entries.where((e) => e.value.isNotEmpty),
+      );
+      final result = u.replace(queryParameters: cleaned).toString();
+      return fragment.isNotEmpty ? '$result#$fragment' : result;
+    } catch (_) {
+      return uri;
+    }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Connect با config_uri (VLESS link)
-  // ─────────────────────────────────────────────────────────
+  // ── IP سرور VPN رو از لیست bypass حذف می‌کنه ────────────
+  // بدون این کار ترافیک VPN خودش هم bypass میشه و loop
+
+  List<String> _subnetsWithoutServer(String serverIp) {
+    return kBypassIranSubnets
+        .where((subnet) => !_subnetContainsIp(subnet, serverIp))
+        .toList();
+  }
+
+  bool _subnetContainsIp(String subnet, String ip) {
+    try {
+      final parts      = subnet.split('/');
+      final subnetIp   = parts[0];
+      final prefixLen  = int.parse(parts[1]);
+
+      final sparts = subnetIp.split('.').map(int.parse).toList();
+      final iparts = ip.split('.').map(int.parse).toList();
+      if (sparts.length != 4 || iparts.length != 4) return false;
+
+      int sInt = 0, iInt = 0;
+      for (int i = 0; i < 4; i++) {
+        sInt = (sInt << 8) | sparts[i];
+        iInt = (iInt << 8) | iparts[i];
+      }
+      final mask = prefixLen == 0 ? 0 : (0xFFFFFFFF << (32 - prefixLen)) & 0xFFFFFFFF;
+      return (sInt & mask) == (iInt & mask);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // ── IP سرور رو از URI بیرون بکش ─────────────────────────
+
+  String? _extractServerIp(String uri) {
+    try {
+      final base = uri.contains('#') ? uri.substring(0, uri.indexOf('#')) : uri;
+      final u    = Uri.parse(base);
+      final host = u.host;
+      // فقط IP خالص (نه domain)
+      final ipRegex = RegExp(r'^\d+\.\d+\.\d+\.\d+$');
+      return ipRegex.hasMatch(host) ? host : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ── Connect ───────────────────────────────────────────────
 
   Future<VpnConnectResult> connect({
     required String configUri,
     required String remark,
-    bool bypassIran = true,
+    bool bypassIran        = true,
     List<String>? blockedApps,
   }) async {
     if (!_initialized) await initialize();
 
     try {
-      _status = VpnConnectionStatus.connecting;
-      _statusController.add(_status);
+      _emit(VpnConnectionStatus.connecting);
 
-      // Parse VLESS/VMess link
-      final parser = FlutterV2ray.parseFromURL(configUri);
+      final cleanUri = _cleanUri(configUri);
+      final parser   = FlutterV2ray.parseFromURL(cleanUri);
 
-      // دریافت delay قبل از اتصال
-      final delay = await _v2ray.getServerDelay(
-        config: parser.getFullConfiguration(),
-      );
-
-      // درخواست permission اندروید
+      // permission
       final permitted = await _v2ray.requestPermission();
       if (!permitted) {
-        _status = VpnConnectionStatus.error;
-        _statusController.add(_status);
-        return VpnConnectResult(
-          success: false,
-          error: 'دسترسی VPN رد شد',
-        );
+        _emit(VpnConnectionStatus.error);
+        return VpnConnectResult(success: false, error: 'دسترسی VPN رد شد');
+      }
+
+      // bypass subnets — IP سرور رو حذف می‌کنیم تا ترافیک VPN bypass نشه
+      List<String>? bypassList;
+      if (bypassIran) {
+        final serverIp = _extractServerIp(cleanUri);
+        bypassList = serverIp != null
+            ? _subnetsWithoutServer(serverIp)
+            : kBypassIranSubnets;
       }
 
       await _v2ray.startV2Ray(
         remark:        remark,
         config:        parser.getFullConfiguration(),
         blockedApps:   blockedApps,
-        bypassSubnets: bypassIran ? kBypassIranSubnets : null,
+        bypassSubnets: bypassList,
         proxyOnly:     false,
       );
 
-      return VpnConnectResult(success: true, pingMs: delay);
+      return VpnConnectResult(success: true);
     } catch (e) {
-      _status = VpnConnectionStatus.error;
-      _statusController.add(_status);
+      _emit(VpnConnectionStatus.error);
       return VpnConnectResult(success: false, error: e.toString());
     }
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Disconnect
-  // ─────────────────────────────────────────────────────────
+  // ── Disconnect ────────────────────────────────────────────
 
   Future<void> disconnect() async {
     if (!_initialized) return;
-    _status = VpnConnectionStatus.disconnecting;
-    _statusController.add(_status);
+    _emit(VpnConnectionStatus.disconnecting);
     _v2ray.stopV2Ray();
   }
 
-  // ─────────────────────────────────────────────────────────
-  // Ping تنها (بدون اتصال)
-  // ─────────────────────────────────────────────────────────
+  // ── Ping ─────────────────────────────────────────────────
 
   Future<int> ping(String configUri) async {
     if (!_initialized) await initialize();
     try {
-      final parser = FlutterV2ray.parseFromURL(configUri);
-      return await _v2ray.getServerDelay(config: parser.getFullConfiguration());
+      final parser = FlutterV2ray.parseFromURL(_cleanUri(configUri));
+      return await _v2ray
+          .getServerDelay(config: parser.getFullConfiguration())
+          .timeout(const Duration(seconds: 5));
     } catch (_) {
       return 9999;
     }
+  }
+
+  void _emit(VpnConnectionStatus s) {
+    _status = s;
+    _statusController.add(s);
   }
 
   void dispose() {
