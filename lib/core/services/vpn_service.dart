@@ -10,15 +10,15 @@ enum VpnConnectionStatus {
 }
 
 class VpnStats {
-  final double uploadSpeed;
-  final double downloadSpeed;
+  final int uploadSpeed;
+  final int downloadSpeed;
   final int upload;
   final int download;
   const VpnStats({
-    this.uploadSpeed  = 0,
+    this.uploadSpeed   = 0,
     this.downloadSpeed = 0,
-    this.upload       = 0,
-    this.download     = 0,
+    this.upload        = 0,
+    this.download      = 0,
   });
 }
 
@@ -109,10 +109,10 @@ class VpnService {
           bypassSubnets:                   null,
           notificationDisconnectButtonName: 'قطع اتصال',
         );
-        return VpnConnectResult(success: true);
+        return const VpnConnectResult(success: true);
       } else {
         _emit(VpnConnectionStatus.error);
-        return VpnConnectResult(success: false, error: 'دسترسی VPN رد شد');
+        return const VpnConnectResult(success: false, error: 'دسترسی VPN رد شد');
       }
     } catch (e) {
       _emit(VpnConnectionStatus.error);
