@@ -108,6 +108,7 @@ class _GradientButtonState extends State<GradientButton>
                         color: Colors.white,
                         fontSize: widget.fontSize,
                       ),
+                      textDirection: TextDirection.rtl,
                     ),
             ),
           ),

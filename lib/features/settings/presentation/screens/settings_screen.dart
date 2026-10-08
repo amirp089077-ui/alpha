@@ -72,7 +72,7 @@ class SettingsScreen extends ConsumerWidget {
                             user?.deviceName ?? 'poco i',
                             style: AppTypography.title3
                                 .copyWith(color: colors.textPrimary),
-                            textDirection: TextDirection.ltr,
+                            textDirection: TextDirection.rtl,
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -173,6 +173,7 @@ class SettingsScreen extends ConsumerWidget {
             GlassCard(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   // Whitelist
                   SettingsTile(

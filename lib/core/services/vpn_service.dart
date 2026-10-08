@@ -89,24 +89,28 @@ class VpnService {
 
   // ── Connect — دقیقاً مثل importConfig + connect در مثال ─
 
-  Future<VpnConnectResult> connect({required String configUri}) async {
+  Future<VpnConnectResult> connect({
+    required String configUri,
+    String? serverName, // اسم سرور از اپ — نشون داده میشه توی notification
+  }) async {
     if (!_initialized) await initialize();
 
     try {
       _emit(VpnConnectionStatus.connecting);
 
-      // parse لینک — دقیقاً مثل importConfig در مثال
       final V2RayURL v2rayURL = FlutterV2ray.parseFromURL(configUri);
-      final String remark = v2rayURL.remark;
+      // اگه serverName از اپ پاس شد اونو استفاده کن، وگرنه از config
+      final String remark = (serverName != null && serverName.isNotEmpty)
+          ? serverName
+          : v2rayURL.remark;
       final String config = v2rayURL.getFullConfiguration();
 
-      // permission — دقیقاً مثل connect در مثال
       if (await _flutterV2ray.requestPermission()) {
         _flutterV2ray.startV2Ray(
-          remark:                          remark,
-          config:                          config,
-          proxyOnly:                       false,
-          bypassSubnets:                   null,
+          remark:                           remark,
+          config:                           config,
+          proxyOnly:                        false,
+          bypassSubnets:                    null,
           notificationDisconnectButtonName: 'قطع اتصال',
         );
         return const VpnConnectResult(success: true);

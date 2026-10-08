@@ -190,7 +190,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
     );
 
     final result = await _vpn.connect(
-      configUri: server.configUri,
+      configUri:  server.configUri,
+      serverName: server.name,
     );
 
     if (!result.success) {

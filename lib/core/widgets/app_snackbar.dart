@@ -62,6 +62,7 @@ class AppSnackBar {
                 child: Text(
                   message,
                   style: AppTypography.body.copyWith(color: Colors.white),
+                  textDirection: TextDirection.rtl,
                 ),
               ),
             ],
