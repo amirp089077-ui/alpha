@@ -394,7 +394,7 @@ class _StatusText extends StatelessWidget {
                               ? 'خطا'
                               : '${state.pingMs} ms',
                       style: TextStyle(
-                        fontFamily: 'Vazirmatn',
+                        fontFamily: 'IranSans',
                         color: state.pingMs <= 0
                             ? colors.textTertiary
                             : state.pingMs < 150

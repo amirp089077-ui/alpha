@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 class AppTypography {
-  static const _fontFa     = 'IranSans';   // برای عناوین bold
-  static const _fontBody   = 'Vazirmatn';  // برای متن عادی
-  static const _fontLatin  = 'Poppins';    // برای متن لاتین
+  // همه فونت‌ها از IranSans Bold استفاده می‌کنن
+  static const _font = 'IranSans';
 
-  // ─── Scale (کوچک‌تر شده) ─────────────────────────────────
+  // ─── Scale ────────────────────────────────────────────────
 
   static const display = TextStyle(
-    fontFamily: _fontFa,
+    fontFamily: _font,
     fontSize: 26,
     fontWeight: FontWeight.w700,
     height: 1.1,
@@ -16,7 +15,7 @@ class AppTypography {
   );
 
   static const timer = TextStyle(
-    fontFamily: _fontFa,
+    fontFamily: _font,
     fontSize: 22,
     fontWeight: FontWeight.w700,
     height: 1.1,
@@ -24,49 +23,49 @@ class AppTypography {
   );
 
   static const title1 = TextStyle(
-    fontFamily: _fontFa,
+    fontFamily: _font,
     fontSize: 20,
     fontWeight: FontWeight.w700,
     height: 1.3,
   );
 
   static const status = TextStyle(
-    fontFamily: _fontFa,
+    fontFamily: _font,
     fontSize: 18,
     fontWeight: FontWeight.w700,
     height: 1.3,
   );
 
   static const title2 = TextStyle(
-    fontFamily: _fontFa,
+    fontFamily: _font,
     fontSize: 15,
     fontWeight: FontWeight.w700,
     height: 1.4,
   );
 
   static const title3 = TextStyle(
-    fontFamily: _fontFa,
+    fontFamily: _font,
     fontSize: 14,
     fontWeight: FontWeight.w700,
     height: 1.4,
   );
 
   static const body = TextStyle(
-    fontFamily: _fontBody,
+    fontFamily: _font,
     fontSize: 13,
     fontWeight: FontWeight.w400,
     height: 1.5,
   );
 
   static const caption = TextStyle(
-    fontFamily: _fontBody,
+    fontFamily: _font,
     fontSize: 11.5,
     fontWeight: FontWeight.w400,
     height: 1.5,
   );
 
   static const micro = TextStyle(
-    fontFamily: _fontBody,
+    fontFamily: _font,
     fontSize: 10,
     fontWeight: FontWeight.w400,
     height: 1.5,
@@ -75,17 +74,17 @@ class AppTypography {
   // ─── Latin logotype ───────────────────────────────────────
 
   static const logoLatin = TextStyle(
-    fontFamily: _fontLatin,
+    fontFamily: _font,
     fontSize: 20,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     height: 1.1,
     letterSpacing: 1.5,
   );
 
   static const logoLatinSmall = TextStyle(
-    fontFamily: _fontLatin,
+    fontFamily: _font,
     fontSize: 13,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w700,
     letterSpacing: 1.2,
   );
 }

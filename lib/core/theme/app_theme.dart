@@ -9,7 +9,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      fontFamily: 'Vazirmatn',
+      fontFamily: 'IranSans',
       scaffoldBackgroundColor: AppColorsDark.bgBase,
       colorScheme: const ColorScheme.dark(
         primary:   AppColorsDark.blue,
@@ -51,7 +51,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      fontFamily: 'Vazirmatn',
+      fontFamily: 'IranSans',
       scaffoldBackgroundColor: AppColorsLight.bgBase,
       colorScheme: const ColorScheme.light(
         primary:   AppColorsLight.teal,

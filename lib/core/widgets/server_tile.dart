@@ -371,7 +371,7 @@ class _PingBadge extends StatelessWidget {
         _label,
         style: AppTypography.micro.copyWith(
           color: _color,
-          fontFamily: 'Vazirmatn',
+          fontFamily: 'IranSans',
         ),
         textDirection: TextDirection.ltr,
       ),
