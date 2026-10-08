@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/vpn_service.dart';
+import '../../../core/services/usage_service.dart';
 import '../data/models/home_models.dart';
 import '../../servers/data/models/server_models.dart';
 import '../../servers/providers/servers_provider.dart';
@@ -16,14 +17,16 @@ final vpnServiceProvider = Provider<VpnService>((_) => VpnService());
 // ─────────────────────────────────────────────────────────────
 
 class HomeNotifier extends StateNotifier<HomeState> {
-  final Ref        _ref;
-  final VpnService _vpn;
+  final Ref          _ref;
+  final VpnService   _vpn;
+  final UsageService _usage;
 
   StreamSubscription<VpnConnectionStatus>? _statusSub;
   StreamSubscription<VpnStats>?            _statsSub;
   Timer?                                   _timerSec;
 
-  HomeNotifier(this._ref, this._vpn) : super(const HomeState()) {
+  HomeNotifier(this._ref, this._vpn, this._usage)
+      : super(const HomeState()) {
     _init();
   }
 
@@ -32,17 +35,10 @@ class HomeNotifier extends StateNotifier<HomeState> {
   // ─────────────────────────────────────────────────────────
 
   Future<void> _init() async {
-    // مقداردهی اولیه از auth (remainingGb / remainingDays)
     _syncFromAuth();
-
-    // initialize v2ray core
     await _vpn.initialize();
-
-    // subscribe به status stream
     _statusSub = _vpn.statusStream.listen(_onVpnStatus);
-
-    // subscribe به stats stream
-    _statsSub = _vpn.statsStream.listen(_onVpnStats);
+    _statsSub  = _vpn.statsStream.listen(_onVpnStats);
   }
 
   void _syncFromAuth() {
@@ -51,6 +47,11 @@ class HomeNotifier extends StateNotifier<HomeState> {
       state = state.copyWith(
         remainingGb:   user.remainingGb,
         remainingDays: user.remainingDays,
+      );
+      // آپدیت سقف در UsageService
+      _usage.updateLimit(
+        limitGb: user.totalQuotaGb,
+        usedGb:  user.usedGb,
       );
     }
   }
@@ -65,10 +66,17 @@ class HomeNotifier extends StateNotifier<HomeState> {
     if (status == VpnConnectionStatus.connected) {
       _startSecTimer();
       _startPingTimer();
+      // شروع ردیابی حجم
+      _usage.start(
+        limitGb:        _ref.read(currentUserProvider)?.totalQuotaGb ?? 0,
+        usedGb:         _ref.read(currentUserProvider)?.usedGb       ?? 0,
+        onLimitReached: _onLimitReached,
+      );
     } else if (status == VpnConnectionStatus.disconnected ||
                status == VpnConnectionStatus.error) {
       _stopSecTimer();
       _stopPingTimer();
+      _usage.stop();
       if (status == VpnConnectionStatus.disconnected) {
         state = state.copyWith(
           connectionSeconds: 0,
@@ -84,6 +92,16 @@ class HomeNotifier extends StateNotifier<HomeState> {
     state = state.copyWith(
       uploadBytes:   stats.upload,
       downloadBytes: stats.download,
+    );
+    // ارسال به UsageService برای جمع‌آوری
+    _usage.updateStats(stats);
+  }
+
+  /// وقتی حجم تموم شد
+  void _onLimitReached() {
+    _vpn.disconnect();
+    state = state.copyWith(
+      errorMessage: 'حجم اینترنت شما تمام شد. لطفاً اشتراک خود را تمدید کنید.',
     );
   }
 
@@ -108,7 +126,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
   }
 
   // ─────────────────────────────────────────────────────────
-  // Timer پینگ — هر 5 ثانیه وقتی connected هستیم
+  // Timer پینگ — هر ۱۰ ثانیه وقتی connected هستیم
   // ─────────────────────────────────────────────────────────
 
   Timer? _timerPing;
@@ -117,7 +135,6 @@ class HomeNotifier extends StateNotifier<HomeState> {
   void _startPingTimer() {
     _timerPing?.cancel();
     _pingInFlight = false;
-    // اولین پینگ رو کمی با تاخیر بزن تا VPN کاملاً وصل بشه
     Future.delayed(const Duration(seconds: 2), () {
       if (state.isConnected) _fetchConnectedPing();
     });
@@ -133,21 +150,27 @@ class HomeNotifier extends StateNotifier<HomeState> {
   }
 
   Future<void> _fetchConnectedPing() async {
-    // از overlapping request جلوگیری کن
     if (_pingInFlight) return;
     _pingInFlight = true;
     try {
       final ping = await _vpn.getConnectedDelay();
-      // فقط اگه هنوز متصلیم آپدیت کن
-      if (state.isConnected) {
-        // -1 یعنی timeout/error — مقدار قبلی رو نگه دار تا UI نپره
-        if (ping > 0) {
-          state = state.copyWith(pingMs: ping);
-        }
+      if (state.isConnected && ping > 0) {
+        state = state.copyWith(pingMs: ping);
       }
     } finally {
       _pingInFlight = false;
     }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // چک سقف قبل از اتصال
+  // ─────────────────────────────────────────────────────────
+
+  bool get _isQuotaExceeded {
+    final user = _ref.read(currentUserProvider);
+    if (user == null) return false;
+    if (user.totalQuotaGb <= 0) return false; // بی‌نهایت
+    return user.usedGb >= user.totalQuotaGb;
   }
 
   // ─────────────────────────────────────────────────────────
@@ -167,27 +190,25 @@ class HomeNotifier extends StateNotifier<HomeState> {
   // ─────────────────────────────────────────────────────────
 
   Future<void> _connect() async {
-    // انتخاب سرور
+    // چک حجم
+    if (_isQuotaExceeded) {
+      state = state.copyWith(
+        errorMessage: 'حجم اینترنت شما تمام شد. لطفاً اشتراک خود را تمدید کنید.',
+      );
+      return;
+    }
+
     final server = _pickServer();
     if (server == null) {
-      state = state.copyWith(
-        errorMessage: 'هیچ سروری انتخاب نشده',
-      );
+      state = state.copyWith(errorMessage: 'هیچ سروری انتخاب نشده');
       return;
     }
-
     if (server.configUri.isEmpty) {
-      state = state.copyWith(
-        errorMessage: 'آدرس کانفیگ سرور خالی است',
-      );
+      state = state.copyWith(errorMessage: 'آدرس کانفیگ سرور خالی است');
       return;
     }
 
-    // آپدیت UI — سرور فعال
-    state = state.copyWith(
-      activeServer:  server,
-      errorMessage:  null,
-    );
+    state = state.copyWith(activeServer: server, errorMessage: null);
 
     final result = await _vpn.connect(
       configUri:  server.configUri,
@@ -214,10 +235,9 @@ class HomeNotifier extends StateNotifier<HomeState> {
   // ─────────────────────────────────────────────────────────
 
   ServerItem? _pickServer() {
-    final serversState   = _ref.read(serversProvider);
+    final serversState    = _ref.read(serversProvider);
     final serversNotifier = _ref.read(serversProvider.notifier);
 
-    // اگه سرور خاصی انتخاب شده (نه smart)
     if (serversState.selectedServerId != null &&
         serversState.selectedServerId != 'smart') {
       for (final g in serversState.groups) {
@@ -228,11 +248,9 @@ class HomeNotifier extends StateNotifier<HomeState> {
       }
     }
 
-    // smart: از bestServer که بر اساس پینگ واقعی کار می‌کنه استفاده کن
     final best = serversNotifier.bestServer;
     if (best != null) return best;
 
-    // fallback: اولین سرور معتبر
     for (final g in serversState.groups) {
       for (final s in g.locations) {
         if (s.configUri.isNotEmpty) return s;
@@ -242,28 +260,30 @@ class HomeNotifier extends StateNotifier<HomeState> {
   }
 
   // ─────────────────────────────────────────────────────────
-  // set active server (از ServersScreen)
-  // ─────────────────────────────────────────────────────────
-
-  void setActiveServer(ServerLocation server) {
-    state = state.copyWith(activeServer: server);
-  }
-
-  // ─────────────────────────────────────────────────────────
-  // connectToServer — از ServersScreen کلیک مستقیم
+  // connectToServer — از ServersScreen
   // ─────────────────────────────────────────────────────────
 
   Future<void> connectToServer(ServerItem server) async {
+    // چک حجم
+    if (_isQuotaExceeded) {
+      state = state.copyWith(
+        errorMessage: 'حجم اینترنت شما تمام شد. لطفاً اشتراک خود را تمدید کنید.',
+      );
+      return;
+    }
+
     if (state.isConnected || state.isConnecting) {
       _vpn.disconnect();
       await Future.delayed(const Duration(milliseconds: 500));
     }
+
     state = state.copyWith(activeServer: server, errorMessage: null);
 
     if (server.configUri.isEmpty) {
       state = state.copyWith(errorMessage: 'آدرس کانفیگ سرور خالی است');
       return;
     }
+
     _emit(VpnConnectionStatus.connecting);
 
     final result = await _vpn.connect(
@@ -276,7 +296,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
   }
 
   // ─────────────────────────────────────────────────────────
-  // connectSmart — بهترین سرور بر اساس پینگ
+  // connectSmart
   // ─────────────────────────────────────────────────────────
 
   Future<void> connectSmart() async {
@@ -292,10 +312,6 @@ class HomeNotifier extends StateNotifier<HomeState> {
     state = state.copyWith(vpnStatus: s);
   }
 
-  // ─────────────────────────────────────────────────────────
-  // refresh stats از auth
-  // ─────────────────────────────────────────────────────────
-
   void refreshFromAuth() => _syncFromAuth();
 
   // ─────────────────────────────────────────────────────────
@@ -308,6 +324,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
     _statsSub?.cancel();
     _stopSecTimer();
     _stopPingTimer();
+    _usage.stop();
     super.dispose();
   }
 }
@@ -315,5 +332,9 @@ class HomeNotifier extends StateNotifier<HomeState> {
 // ── Provider ───────────────────────────────────────────────
 
 final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
-  return HomeNotifier(ref, ref.watch(vpnServiceProvider));
+  return HomeNotifier(
+    ref,
+    ref.watch(vpnServiceProvider),
+    ref.watch(usageServiceProvider),
+  );
 });

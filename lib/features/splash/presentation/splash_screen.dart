@@ -98,7 +98,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _navigate() {
     final authStatus = ref.read(authProvider).status;
     if (authStatus == AuthStatus.authenticated) {
-      context.go(AppRoutes.home);
+      // چک حجم قبل از رفتن به home
+      final user = ref.read(currentUserProvider);
+      if (user != null &&
+          user.totalQuotaGb > 0 &&
+          user.usedGb >= user.totalQuotaGb) {
+        // حجم تموم شده — برو home ولی اجازه اتصال نده (home_provider هندل می‌کنه)
+        context.go(AppRoutes.home);
+      } else {
+        context.go(AppRoutes.home);
+      }
     } else {
       context.go(AppRoutes.login);
     }

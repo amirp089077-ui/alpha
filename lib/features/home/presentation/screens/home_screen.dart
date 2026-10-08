@@ -12,6 +12,7 @@ import '../../../../core/widgets/circle_icon_button.dart';
 import '../../../../core/widgets/circular_gauge.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/widgets/gradient_background.dart';
+import '../../../../core/widgets/gradient_button.dart';
 import '../../../../core/widgets/gradient_text.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../data/models/home_models.dart';
@@ -19,18 +20,47 @@ import '../../providers/home_provider.dart';
 import '../../../servers/data/models/server_models.dart';
 import '../../../servers/providers/servers_provider.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(homeProvider);
-    final colors = Theme.of(context).extension<AppColors>()!;
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
 
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // چک حجم بعد از build اول
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkQuotaOnInit();
+    });
+  }
+
+  void _checkQuotaOnInit() {
+    final state = ref.read(homeProvider);
+    if (state.errorMessage != null &&
+        state.errorMessage!.contains('حجم')) {
+      _showQuotaDialog();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // گوش بده به errorMessage — اگه حجم تموم شد dialog نشون بده
+    ref.listen<HomeState>(homeProvider, (prev, next) {
+      if (next.errorMessage != null &&
+          next.errorMessage!.contains('حجم') &&
+          prev?.errorMessage != next.errorMessage) {
+        _showQuotaDialog();
+      }
+    });
+
+    final state  = ref.watch(homeProvider);
+    final colors = Theme.of(context).extension<AppColors>()!;
     final glowMode = state.isConnected ? GlowMode.connected : GlowMode.neutral;
 
-    return GradientBackground(
-      glowMode: glowMode,
+    return GradientBackground(      glowMode: glowMode,
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -57,6 +87,53 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _showQuotaDialog() {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        final colors = Theme.of(ctx).extension<AppColors>()!;
+        return Directionality(
+          textDirection: TextDirection.rtl,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            backgroundColor: colors.card,
+            title: Text(
+              'حجم اینترنت تمام شد',
+              style: AppTypography.title2.copyWith(color: colors.textPrimary),
+              textDirection: TextDirection.rtl,
+            ),
+            content: Text(
+              'حجم اشتراک شما به پایان رسیده است.\nبرای ادامه استفاده لطفاً اشتراک خود را تمدید کنید.',
+              style: AppTypography.body.copyWith(color: colors.textSecondary),
+              textDirection: TextDirection.rtl,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(
+                  'بعداً',
+                  style: AppTypography.body.copyWith(color: colors.textTertiary),
+                ),
+              ),
+              GradientButton(
+                label: 'تمدید اشتراک',
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  context.go(AppRoutes.subscription);
+                },
+                height: 44,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
