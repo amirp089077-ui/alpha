@@ -266,7 +266,10 @@ class HomeNotifier extends StateNotifier<HomeState> {
     }
     _emit(VpnConnectionStatus.connecting);
 
-    final result = await _vpn.connect(configUri: server.configUri);
+    final result = await _vpn.connect(
+      configUri:  server.configUri,
+      serverName: server.name,
+    );
     if (!result.success) {
       state = state.copyWith(errorMessage: result.error ?? 'اتصال ناموفق بود');
     }
