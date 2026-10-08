@@ -45,8 +45,12 @@ dependencies:
   # Secure token storage
   flutter_secure_storage: ^9.2.2
 
-  # VPN — VLESS/VMess/Trojan via V2Ray core
-  flutter_v2ray: ^1.0.10
+  # VPN — VLESS/VMess/Trojan via V2Ray/Xray core
+  # از GitHub مستقیم برای Xray 25.3.6 + xhttp support
+  flutter_v2ray:
+    git:
+      url: https://github.com/blueboy-tm/flutter_v2ray.git
+      ref: master
 
 dev_dependencies:
   flutter_test:

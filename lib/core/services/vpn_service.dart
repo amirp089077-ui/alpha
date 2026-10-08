@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_v2ray/flutter_v2ray.dart';
 
 enum VpnConnectionStatus {
@@ -132,27 +133,66 @@ class VpnService {
 
   // ── Delay ─────────────────────────────────────────────────
 
-  /// پینگ یک سرور — ms برمیگردونه، -1 اگه سرور مرده یا timeout شد
-  ///
-  /// flutter_v2ray گاهی برای سرور مرده عدد پایین (مثل 50) برمیگردونه.
-  /// برای تشخیص درست، با timeout خودمون می‌پیچیمش:
-  /// اگه در [_kPingTimeout] جواب نداد یا exception خورد → -1 (مرده)
-  static const _kPingTimeout = Duration(seconds: 6);
-  static const _kPingDeadThreshold = 0; // هر مقدار <= 0 مرده حساب میشه
+  static const _kPingTimeout   = Duration(seconds: 6);
+  static const _kTcpTimeout    = Duration(seconds: 4);
 
+  /// پینگ یک سرور — ms برمیگردونه، -1 اگه مرده یا timeout شد
+  ///
+  /// استراتژی دو مرحله‌ای:
+  /// ۱. getServerDelay از flutter_v2ray (برای vmess/vless/trojan ساده)
+  /// ۲. اگه نتیجه معتبر نبود → TCP socket مستقیم به host:port سرور
+  ///    (برای xhttp/reality که getServerDelay روشون کار نمی‌کنه)
   Future<int> getDelay(String configUri) async {
     if (!_initialized) await initialize();
     try {
       final V2RayURL v2rayURL = FlutterV2ray.parseFromURL(configUri);
       final config = v2rayURL.getFullConfiguration();
 
+      // مرحله ۱ — تلاش با getServerDelay
       final ping = await _flutterV2ray
           .getServerDelay(config: config)
           .timeout(_kPingTimeout, onTimeout: () => -1);
 
-      // flutter_v2ray گاهی ≤0 برمیگردونه برای سرور مرده
-      if (ping <= _kPingDeadThreshold) return -1;
-      return ping;
+      if (ping > 0) return ping;
+
+      // مرحله ۲ — fallback به TCP ping برای xhttp/reality
+      return await _tcpPing(configUri);
+    } catch (_) {
+      return await _tcpPing(configUri);
+    }
+  }
+
+  /// TCP ping مستقیم به host:port سرور
+  Future<int> _tcpPing(String configUri) async {
+    try {
+      // برای لینک‌های v2ray، host و port در بعد @ هستن
+      // فرمت: vless://uuid@host:port?...
+      String? host;
+      int? port;
+
+      final atIdx = configUri.indexOf('@');
+      final questionIdx = configUri.indexOf('?');
+      if (atIdx != -1) {
+        final hostPort = configUri
+            .substring(atIdx + 1, questionIdx == -1 ? configUri.length : questionIdx)
+            .split(':');
+        if (hostPort.length >= 2) {
+          host = hostPort[0];
+          port = int.tryParse(hostPort[1]);
+        }
+      }
+
+      if (host == null || port == null) return -1;
+
+      final sw = Stopwatch()..start();
+      final socket = await Socket.connect(
+        host,
+        port,
+        timeout: _kTcpTimeout,
+      );
+      sw.stop();
+      socket.destroy();
+      return sw.elapsedMilliseconds;
     } catch (_) {
       return -1;
     }
@@ -165,7 +205,7 @@ class VpnService {
       final ping = await _flutterV2ray
           .getConnectedServerDelay()
           .timeout(_kPingTimeout, onTimeout: () => -1);
-      if (ping <= _kPingDeadThreshold) return -1;
+      if (ping <= 0) return -1;
       return ping;
     } catch (_) {
       return -1;

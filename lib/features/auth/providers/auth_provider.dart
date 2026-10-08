@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/api_service.dart';
+import '../../../features/home/providers/home_provider.dart';
 import '../data/models/auth_models.dart';
 import '../data/repository/auth_repository.dart';
 
@@ -14,8 +15,9 @@ final authRepositoryProvider = Provider<AuthRepository>(
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repo;
+  final Ref _ref;
 
-  AuthNotifier(this._repo) : super(const AuthState()) {
+  AuthNotifier(this._repo, this._ref) : super(const AuthState()) {
     _restoreSession();
   }
 
@@ -72,6 +74,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // ── Logout ───────────────────────────────────────────────
 
   Future<void> logout() async {
+    // اول VPN رو قطع کن، بعد session رو پاک کن
+    try {
+      final vpn = _ref.read(vpnServiceProvider);
+      vpn.disconnect();
+    } catch (_) {}
+
     await _repo.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
@@ -98,7 +106,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 // ── Provider ───────────────────────────────────────────────
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.watch(authRepositoryProvider));
+  return AuthNotifier(ref.watch(authRepositoryProvider), ref);
 });
 
 /// shorthand برای دسترسی سریع به UserModel در widget ها
