@@ -83,7 +83,9 @@ class ServersNotifier extends StateNotifier<ServersState> {
     for (final server in allServers) {
       if (server.configUri.isEmpty) continue;
       final ping = state.pingOf(server.id);
-      // 0 یعنی هنوز پینگ نگرفته — از ping خود سرور استفاده کن
+      // -1 یعنی سرور مرده → رد کن
+      if (ping == -1) continue;
+      // 0 یعنی هنوز ping نگرفتیم → از مقدار پیش‌فرض سرور استفاده کن
       final effectivePing = ping > 0 ? ping : server.ping;
       if (effectivePing < bestPing) {
         bestPing = effectivePing;

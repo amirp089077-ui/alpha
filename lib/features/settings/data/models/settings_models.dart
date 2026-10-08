@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 enum ThemeMode2 { auto, light, dark }
 
 class AppSettings {
@@ -31,11 +33,15 @@ class AppSettings {
 class AppInfo {
   final String packageName;
   final String appName;
-  final bool isSystemApp;
+  final bool isSystem;
+
+  /// PNG bytes آیکون واقعی از گوشی — null یعنی fallback به حرف اول
+  final Uint8List? iconBytes;
 
   const AppInfo({
     required this.packageName,
     required this.appName,
-    this.isSystemApp = false,
+    this.isSystem = false,
+    this.iconBytes,
   });
 }

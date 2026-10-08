@@ -25,16 +25,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
   late Animation<double> _textOpacity;
-  late Animation<Offset> _textSlide;
+  late Animation<Offset>  _textSlide;
 
   @override
   void initState() {
     super.initState();
 
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.transparent,
+      statusBarColor:                    Colors.transparent,
+      statusBarIconBrightness:           Brightness.dark,
+      systemNavigationBarColor:          Colors.transparent,
     ));
 
     _logoCtrl = AnimationController(
@@ -75,7 +75,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 400));
     _textCtrl.forward();
 
-    // حداقل زمان نمایش splash + منتظر auth و config
     await Future.wait([
       Future.delayed(const Duration(milliseconds: 1800)),
       _waitForAuth(),
@@ -85,10 +84,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _navigate();
   }
 
-  /// منتظر می‌ماند تا AuthNotifier وضعیت اولیه‌اش رو مشخص کنه
   Future<void> _waitForAuth() async {
-    // اگر هنوز initial یا loading است صبر می‌کنیم
-    final completer = Future.doWhile(() async {
+    await Future.doWhile(() async {
       final status = ref.read(authProvider).status;
       if (status == AuthStatus.initial || status == AuthStatus.loading) {
         await Future.delayed(const Duration(milliseconds: 100));
@@ -96,7 +93,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       }
       return false;
     });
-    await completer;
   }
 
   void _navigate() {
@@ -125,54 +121,51 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         systemNavigationBarColor:          Colors.transparent,
         systemNavigationBarIconBrightness: Brightness.dark,
       ),
-      child: Scaffold(
-        backgroundColor: AppColorsLight.bgBase,
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: RadialGradient(
-              center: Alignment(0, -0.5),
-              radius: 1.4,
-              colors: [
-                AppColorsLight.bgLight1,
-                AppColorsLight.bgBase,
-              ],
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Scaffold(
+          backgroundColor: AppColorsLight.bgBase,
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, -0.5),
+                radius: 1.4,
+                colors: [AppColorsLight.bgLight1, AppColorsLight.bgBase],
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Spacer(flex: 3),
+            child: SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Spacer(flex: 3),
 
-                // ── Logo ─────────────────────────────────────
-                ScaleTransition(
-                  scale: _logoScale,
-                  child: FadeTransition(
-                    opacity: _logoOpacity,
-                    child: const AppLogoMark(
-                      size: 110,
-                      ringWidth: 2.5,
-                      showGlow: false,
+                  // ── Logo ──────────────────────────────────────────────
+                  ScaleTransition(
+                    scale: _logoScale,
+                    child: FadeTransition(
+                      opacity: _logoOpacity,
+                      child: const AppLogoMark(
+                        size: 110,
+                        ringWidth: 2.5,
+                        showGlow: false,
+                      ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 28),
+                  const SizedBox(height: 28),
 
-                // ── App name ──────────────────────────────────
-                FadeTransition(
-                  opacity: _textOpacity,
-                  child: SlideTransition(
-                    position: _textSlide,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Directionality(
-                          textDirection: TextDirection.ltr,
-                          child: RichText(
+                  // ── App name ──────────────────────────────────────────
+                  FadeTransition(
+                    opacity: _textOpacity,
+                    child: SlideTransition(
+                      position: _textSlide,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          RichText(
                             text: TextSpan(
                               children: [
                                 TextSpan(
@@ -190,31 +183,31 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                               ],
                             ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'اینترنت آزاد، سریع و امن',
-                          style: AppTypography.body.copyWith(
-                            color: AppColorsLight.textSecondary,
+                          const SizedBox(height: 8),
+                          Text(
+                            'اینترنت آزاد، سریع و امن',
+                            style: AppTypography.body.copyWith(
+                              color: AppColorsLight.textSecondary,
+                            ),
+                            textDirection: TextDirection.rtl,
+                            textAlign: TextAlign.center,
                           ),
-                          textDirection: TextDirection.rtl,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                const Spacer(flex: 4),
+                  const Spacer(flex: 4),
 
-                // ── Dots ─────────────────────────────────────
-                FadeTransition(
-                  opacity: _textOpacity,
-                  child: _SplashDots(controller: _dotsCtrl),
-                ),
+                  // ── Dots ──────────────────────────────────────────────
+                  FadeTransition(
+                    opacity: _textOpacity,
+                    child: _SplashDots(controller: _dotsCtrl),
+                  ),
 
-                const SizedBox(height: 32),
-              ],
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
           ),
         ),
@@ -222,6 +215,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
   }
 }
+
+// ── Splash dots ───────────────────────────────────────────────────────────────
 
 class _SplashDots extends StatelessWidget {
   const _SplashDots({required this.controller});
@@ -235,11 +230,20 @@ class _SplashDots extends StatelessWidget {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _Dot(color: AppColorsShared.orange, active: controller.value > 0.66),
+            _Dot(
+              color: AppColorsShared.orange,
+              active: controller.value > 0.66,
+            ),
             const SizedBox(width: 8),
-            _Dot(color: AppColorsLight.textTertiary, active: controller.value > 0.33 && controller.value <= 0.66),
+            _Dot(
+              color: AppColorsLight.textTertiary,
+              active: controller.value > 0.33 && controller.value <= 0.66,
+            ),
             const SizedBox(width: 8),
-            _Dot(color: AppColorsLight.teal, active: controller.value <= 0.33),
+            _Dot(
+              color: AppColorsLight.teal,
+              active: controller.value <= 0.33,
+            ),
           ],
         );
       },

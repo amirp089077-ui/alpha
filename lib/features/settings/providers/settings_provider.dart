@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/mock/mock_settings_repository.dart';
-import '../data/models/settings_models.dart';
 
-final settingsRepositoryProvider = Provider((_) => MockSettingsRepository());
+import '../data/models/settings_models.dart';
+import '../data/repository/settings_repository.dart';
+
+final settingsRepositoryProvider = Provider<SettingsRepository>(
+  (_) => SettingsRepository(),
+);
 
 class SettingsNotifier extends StateNotifier<AppSettings> {
-  final MockSettingsRepository _repo;
+  final SettingsRepository _repo;
+
   SettingsNotifier(this._repo) : super(const AppSettings()) {
     _load();
   }
@@ -53,11 +57,12 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   }
 }
 
-final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>((ref) {
+final settingsProvider =
+    StateNotifierProvider<SettingsNotifier, AppSettings>((ref) {
   return SettingsNotifier(ref.watch(settingsRepositoryProvider));
 });
 
-/// Derived provider that maps ThemeMode2 → Flutter ThemeMode
+/// Derived provider — ThemeMode2 → Flutter ThemeMode
 final themeModeProvider = Provider<ThemeMode>((ref) {
   final mode = ref.watch(settingsProvider).themeMode;
   switch (mode) {
@@ -67,6 +72,7 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
   }
 });
 
+/// لیست واقعی برنامه‌های نصب‌شده از گوشی
 final whitelistAppsProvider = FutureProvider<List<AppInfo>>((ref) async {
   final repo = ref.watch(settingsRepositoryProvider);
   return repo.fetchInstalledApps();

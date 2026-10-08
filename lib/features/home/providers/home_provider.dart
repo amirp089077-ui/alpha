@@ -64,9 +64,11 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
     if (status == VpnConnectionStatus.connected) {
       _startSecTimer();
+      _startPingTimer();
     } else if (status == VpnConnectionStatus.disconnected ||
                status == VpnConnectionStatus.error) {
       _stopSecTimer();
+      _stopPingTimer();
       if (status == VpnConnectionStatus.disconnected) {
         state = state.copyWith(
           connectionSeconds: 0,
@@ -103,6 +105,49 @@ class HomeNotifier extends StateNotifier<HomeState> {
   void _stopSecTimer() {
     _timerSec?.cancel();
     _timerSec = null;
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Timer پینگ — هر 5 ثانیه وقتی connected هستیم
+  // ─────────────────────────────────────────────────────────
+
+  Timer? _timerPing;
+  bool   _pingInFlight = false;
+
+  void _startPingTimer() {
+    _timerPing?.cancel();
+    _pingInFlight = false;
+    // اولین پینگ رو کمی با تاخیر بزن تا VPN کاملاً وصل بشه
+    Future.delayed(const Duration(seconds: 2), () {
+      if (state.isConnected) _fetchConnectedPing();
+    });
+    _timerPing = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (state.isConnected) _fetchConnectedPing();
+    });
+  }
+
+  void _stopPingTimer() {
+    _timerPing?.cancel();
+    _timerPing = null;
+    _pingInFlight = false;
+  }
+
+  Future<void> _fetchConnectedPing() async {
+    // از overlapping request جلوگیری کن
+    if (_pingInFlight) return;
+    _pingInFlight = true;
+    try {
+      final ping = await _vpn.getConnectedDelay();
+      // فقط اگه هنوز متصلیم آپدیت کن
+      if (state.isConnected) {
+        // -1 یعنی timeout/error — مقدار قبلی رو نگه دار تا UI نپره
+        if (ping > 0) {
+          state = state.copyWith(pingMs: ping);
+        }
+      }
+    } finally {
+      _pingInFlight = false;
+    }
   }
 
   // ─────────────────────────────────────────────────────────
@@ -255,6 +300,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
     _statusSub?.cancel();
     _statsSub?.cancel();
     _stopSecTimer();
+    _stopPingTimer();
     super.dispose();
   }
 }
@@ -263,14 +309,4 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
 final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
   return HomeNotifier(ref, ref.watch(vpnServiceProvider));
-});
-
-/// پینگ واقعی سرور متصل — هر ۵ ثانیه آپدیت میشه
-final homePingProvider = StreamProvider<int>((ref) async* {
-  final vpn   = ref.watch(vpnServiceProvider);
-  final home  = ref.watch(homeProvider);
-  if (!home.isConnected) { yield 0; return; }
-
-  yield* Stream.periodic(const Duration(seconds: 5), (_) => 0)
-      .asyncMap((_) => vpn.getConnectedDelay());
 });

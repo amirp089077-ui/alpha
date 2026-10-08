@@ -128,30 +128,47 @@ class VpnService {
 
   // ── Delay ─────────────────────────────────────────────────
 
-  /// پینگ یک سرور — ms برمیگردونه، 9999 اگه fail شد
+  /// پینگ یک سرور — ms برمیگردونه، -1 اگه سرور مرده یا timeout شد
+  ///
+  /// flutter_v2ray گاهی برای سرور مرده عدد پایین (مثل 50) برمیگردونه.
+  /// برای تشخیص درست، با timeout خودمون می‌پیچیمش:
+  /// اگه در [_kPingTimeout] جواب نداد یا exception خورد → -1 (مرده)
+  static const _kPingTimeout = Duration(seconds: 6);
+  static const _kPingDeadThreshold = 0; // هر مقدار <= 0 مرده حساب میشه
+
   Future<int> getDelay(String configUri) async {
     if (!_initialized) await initialize();
     try {
       final V2RayURL v2rayURL = FlutterV2ray.parseFromURL(configUri);
-      return await _flutterV2ray.getServerDelay(
-        config: v2rayURL.getFullConfiguration(),
-      );
+      final config = v2rayURL.getFullConfiguration();
+
+      final ping = await _flutterV2ray
+          .getServerDelay(config: config)
+          .timeout(_kPingTimeout, onTimeout: () => -1);
+
+      // flutter_v2ray گاهی ≤0 برمیگردونه برای سرور مرده
+      if (ping <= _kPingDeadThreshold) return -1;
+      return ping;
     } catch (_) {
-      return 9999;
+      return -1;
     }
   }
 
-  /// پینگ سرور متصل فعلی
+  /// پینگ سرور متصل فعلی — فقط وقتی واقعاً متصله صداش بزن
   Future<int> getConnectedDelay() async {
-    if (!_initialized) return 9999;
+    if (!_initialized) return -1;
     try {
-      return await _flutterV2ray.getConnectedServerDelay();
+      final ping = await _flutterV2ray
+          .getConnectedServerDelay()
+          .timeout(_kPingTimeout, onTimeout: () => -1);
+      if (ping <= _kPingDeadThreshold) return -1;
+      return ping;
     } catch (_) {
-      return 9999;
+      return -1;
     }
   }
 
-  /// پینگ موازی چند سرور — Map<serverId, pingMs>
+  /// پینگ موازی چند سرور — Map<serverId, pingMs>  (-1 = مرده)
   Future<Map<String, int>> pingAll(Map<String, String> serverConfigs) async {
     if (!_initialized) await initialize();
     final futures = serverConfigs.entries.map((e) async {

@@ -27,7 +27,7 @@ class SettingsScreen extends ConsumerWidget {
       child: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+          padding: EdgeInsets.fromLTRB(20, 12, 20, 100 + MediaQuery.of(context).padding.bottom),
           children: [
             // ── Page title ──────────────────────────────────────────────
             Align(

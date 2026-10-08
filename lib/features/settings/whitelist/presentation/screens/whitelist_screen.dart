@@ -165,7 +165,7 @@ class _WhitelistScreenState extends ConsumerState<WhitelistScreen> {
                     }
 
                     return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                      padding: EdgeInsets.fromLTRB(20, 8, 20, 100 + MediaQuery.of(context).padding.bottom),
                       itemCount: filtered.length,
                       separatorBuilder: (_, __) =>
                           const SizedBox(height: 8),
@@ -230,29 +230,66 @@ class _AppTile extends StatelessWidget {
                 : null,
           ),
           const Spacer(),
-          // App name
-          Text(
-            app.appName,
-            style: AppTypography.body.copyWith(color: colors.textPrimary),
-            textDirection: TextDirection.rtl,
+          // App name + package name
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                app.appName,
+                style: AppTypography.body.copyWith(color: colors.textPrimary),
+                textDirection: TextDirection.rtl,
+              ),
+              Text(
+                app.packageName,
+                style: AppTypography.micro.copyWith(color: colors.textTertiary),
+                textDirection: TextDirection.ltr,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
           const SizedBox(width: 12),
-          // App icon placeholder
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colors.iconTileBlue,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: Text(
-                app.appName.isNotEmpty ? app.appName[0] : '?',
-                style: AppTypography.title3.copyWith(color: colors.blue),
-              ),
-            ),
+          // آیکون واقعی یا fallback به حرف اول
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: app.iconBytes != null
+                ? Image.memory(
+                    app.iconBytes!,
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _FallbackIcon(
+                      app: app,
+                      colors: colors,
+                    ),
+                  )
+                : _FallbackIcon(app: app, colors: colors),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Fallback icon — حرف اول اسم برنامه ────────────────────────────────────────
+class _FallbackIcon extends StatelessWidget {
+  const _FallbackIcon({required this.app, required this.colors});
+  final AppInfo app;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: colors.iconTileBlue,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          app.appName.isNotEmpty ? app.appName[0].toUpperCase() : '?',
+          style: AppTypography.title3.copyWith(color: colors.blue),
+        ),
       ),
     );
   }

@@ -30,28 +30,31 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentIndex = _currentIndex(context);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: Stack(
-        children: [
-          // ── Page content ──────────────────────────────────────────────
-          child,
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            // ── Page content ────────────────────────────────────────────
+            child,
 
-          // ── Floating nav bar ──────────────────────────────────────────
-          Positioned(
-            left: 20,
-            right: 20,
-            bottom: 20,
-            child: _FloatingNavBar(
-              currentIndex: currentIndex,
-              tabs: _tabs,
-              onTap: (i) {
-                AppHaptics.selection();
-                context.go(_tabs[i].route);
-              },
+            // ── Floating nav bar ─────────────────────────────────────────
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 20 + MediaQuery.of(context).padding.bottom,
+              child: _FloatingNavBar(
+                currentIndex: currentIndex,
+                tabs: _tabs,
+                onTap: (i) {
+                  AppHaptics.selection();
+                  context.go(_tabs[i].route);
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

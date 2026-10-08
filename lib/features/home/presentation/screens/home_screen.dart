@@ -38,7 +38,7 @@ class HomeScreen extends ConsumerWidget {
             _HomeAppBar(colors: colors),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                padding: EdgeInsets.fromLTRB(20, 0, 20, 100 + MediaQuery.of(context).padding.bottom),
                 child: Column(
                   children: [
                     const SizedBox(height: 8),
@@ -368,40 +368,44 @@ class _StatusText extends StatelessWidget {
           const SizedBox(height: 8),
           // Server info
           if (state.activeServer != null)
-            Consumer(builder: (context, ref, _) {
-              final pingAsync = ref.watch(homePingProvider);
-              final ping = pingAsync.valueOrNull ?? 0;
-              return Directionality(
-                textDirection: TextDirection.rtl,
-                child: RichText(
-                  textAlign: TextAlign.center,
-                  text: TextSpan(
-                    style: AppTypography.body.copyWith(color: colors.textSecondary),
-                    children: [
-                      TextSpan(text: state.activeServer!.name),
-                      if (state.activeServer!.badge == ServerBadge.b)
-                        const WidgetSpan(
-                          alignment: PlaceholderAlignment.middle,
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 6),
-                            child: StatusBadge(type: BadgeType.b),
-                          ),
-                        ),
-                      const TextSpan(text: '  •  پینگ '),
-                      TextSpan(
-                        text: ping > 0 ? '$ping ms' : '...',
-                        style: TextStyle(
-                          fontFamily: 'Vazirmatn',
-                          color: ping > 0 && ping < 150
-                              ? colors.mint
-                              : colors.orange,
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: AppTypography.body.copyWith(color: colors.textSecondary),
+                  children: [
+                    TextSpan(text: state.activeServer!.name),
+                    if (state.activeServer!.badge == ServerBadge.b)
+                      const WidgetSpan(
+                        alignment: PlaceholderAlignment.middle,
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: StatusBadge(type: BadgeType.b),
                         ),
                       ),
-                    ],
-                  ),
+                    const TextSpan(text: '  •  پینگ '),
+                    TextSpan(
+                      // pingMs == 0 یعنی هنوز اولین ping نگرفتیم → نقطه‌چین
+                      // pingMs == -1 یعنی timeout/error → قرمز
+                      text: state.pingMs == 0
+                          ? '...'
+                          : state.pingMs < 0
+                              ? 'خطا'
+                              : '${state.pingMs} ms',
+                      style: TextStyle(
+                        fontFamily: 'Vazirmatn',
+                        color: state.pingMs <= 0
+                            ? colors.textTertiary
+                            : state.pingMs < 150
+                                ? colors.mint
+                                : colors.orange,
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            }),
+              ),
+            ),
           const SizedBox(height: 6),
           Text(
             '${S.homeUsage}  ${formatDataFa(state.usageMb / 1024)}',

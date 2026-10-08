@@ -107,7 +107,7 @@ class _SubContent extends ConsumerWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+      padding: EdgeInsets.fromLTRB(20, 8, 20, 100 + MediaQuery.of(context).padding.bottom),
       children: [
         // ── Two gauge cards ─────────────────────────────────────────────
         Row(

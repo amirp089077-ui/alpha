@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/strings.dart';
+import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/theme_extension.dart';
 import '../../../../core/theme/typography.dart';
 import '../../../../core/utils/haptics.dart';
@@ -122,7 +124,7 @@ class _ServersList extends ConsumerWidget {
     final bestPing   = bestServer != null ? state.pingOf(bestServer.id) : 0;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 120),
+      padding: EdgeInsets.fromLTRB(20, 4, 20, 100 + MediaQuery.of(context).padding.bottom),
       children: [
         // Smart server
         SmartServerTile(
@@ -175,13 +177,15 @@ class _ServersList extends ConsumerWidget {
     );
   }
 
-  // کلیک روی سرور → مستقیم connect
+  // کلیک روی سرور → connect + برو صفحه اصلی
   void _connectServer(WidgetRef ref, BuildContext context, ServerItem server) {
     ref.read(homeProvider.notifier).connectToServer(server);
+    context.go(AppRoutes.home);
   }
 
   void _connectIfNeeded(WidgetRef ref, BuildContext context, {bool isSmart = false}) {
     ref.read(homeProvider.notifier).connectSmart();
+    context.go(AppRoutes.home);
   }
 }
 
