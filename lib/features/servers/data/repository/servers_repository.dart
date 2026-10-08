@@ -17,23 +17,36 @@ class ServersRepository {
     return _groupByCountry(items);
   }
 
-  /// سرورها را بر اساس کشور گروه‌بندی می‌کند
+  /// سرورها را بر اساس پرچم (flag emoji) گروه‌بندی می‌کند
+  /// مثلاً «Germany» و «Germany 2» هر دو 🇩🇪 دارن → یه گروه
   List<ServerGroup> _groupByCountry(List<ServerItem> items) {
+    // ترتیب ورود سرورها رو حفظ می‌کنیم
     final Map<String, List<ServerItem>> map = {};
+    final Map<String, String> flagToCountry = {};
 
     for (final item in items) {
-      map.putIfAbsent(item.country, () => []).add(item);
+      final key = item.flag; // کلید = emoji پرچم
+      map.putIfAbsent(key, () => []).add(item);
+      // اولین اسم کشور با این پرچم رو نگه دار
+      flagToCountry.putIfAbsent(key, () => _baseCountryName(item.country));
     }
 
     return map.entries.map((entry) {
-      final first = entry.value.first;
+      final flag     = entry.key;
+      final servers  = entry.value;
+      final country  = flagToCountry[flag]!;
       return ServerGroup(
-        id:        entry.key,
-        country:   entry.key,
-        flagEmoji: first.flag,
-        locations: entry.value,
-        isSpecial: first.flag == '🌐',
+        id:        flag,
+        country:   country,
+        flagEmoji: flag,
+        locations: servers,
+        isSpecial: flag == '🌐',
       );
     }).toList();
+  }
+
+  /// پاک کردن شماره از آخر اسم کشور: «Germany 2» → «Germany»
+  String _baseCountryName(String name) {
+    return name.replaceAll(RegExp(r'\s+\d+$'), '').trim();
   }
 }
