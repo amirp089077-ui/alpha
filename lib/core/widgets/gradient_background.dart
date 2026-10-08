@@ -1,5 +1,6 @@
 ﻿import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/theme_extension.dart';
 
 enum GlowMode { neutral, connected, warning }
@@ -66,6 +67,11 @@ class _GradientBackgroundState extends State<GradientBackground>
     final colors = Theme.of(context).extension<AppColors>()!;
     final disableAnims = MediaQuery.of(context).disableAnimations;
 
+    // رنگ navigation bar سیستم = رنگ پایین پس‌زمینه اپ
+    final navBarColor = colors.bgBottom;
+    final navBarIconBrightness =
+        colors.isLight ? Brightness.dark : Brightness.light;
+
     Color topGlow;
     switch (widget.glowMode) {
       case GlowMode.connected:
@@ -82,9 +88,17 @@ class _GradientBackgroundState extends State<GradientBackground>
     // Target alpha: if animations disabled keep the base color's alpha, else force 0.35
     final targetAlpha = disableAnims ? topGlow.a : 0.35;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor:           navBarColor,
+        systemNavigationBarIconBrightness:  navBarIconBrightness,
+        systemNavigationBarDividerColor:    Colors.transparent,
+        statusBarColor:                     Colors.transparent,
+        statusBarIconBrightness:            navBarIconBrightness,
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
         // ── Base gradient ─────────────────────────────────────────────────
         Container(
           decoration: BoxDecoration(
@@ -144,7 +158,8 @@ class _GradientBackgroundState extends State<GradientBackground>
 
         // ── Content ───────────────────────────────────────────────────────
         widget.child,
-      ],
+        ],
+      ),
     );
   }
 }
