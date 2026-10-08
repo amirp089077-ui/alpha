@@ -42,7 +42,7 @@ class ServerItem {
     this.emoji = '',
     this.isPro = false,
     this.configUri = '',
-    this.ping = 50,
+    this.ping = 0,  // 0 = هنوز پینگ واقعی نگرفتیم
   });
 
   factory ServerItem.fromJson(Map<String, dynamic> j) {
@@ -57,7 +57,7 @@ class ServerItem {
       emoji:     (j['emoji']     as String?) ?? '',
       isPro:     (j['is_pro']    as bool?)   ?? false,
       configUri: (j['config_uri'] as String?) ?? '',
-      ping:      (j['ping']      as int?)    ?? 50,
+      ping:      (j['ping']      as int?)    ?? 0,  // 0 = پینگ واقعی هنوز نگرفتیم
     );
   }
 

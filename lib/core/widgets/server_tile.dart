@@ -141,10 +141,10 @@ class ServerLocationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    // pingMs == 0  → هنوز ping نگرفتیم، از مقدار پیش‌فرض سرور استفاده کن
-    // pingMs == -1 → سرور مرده، مستقیم -1 پاس بده تا badge نشون بده "—"
-    // pingMs > 0   → مقدار واقعی ping
-    final effectivePing = pingMs == 0 ? location.ping : pingMs;
+    // pingMs == 0  → هنوز ping نگرفتیم → نشون نده (badge پنهان)
+    // pingMs == -1 → سرور مرده → نشون بده "—"
+    // pingMs > 0   → مقدار واقعی
+    final effectivePing = pingMs != 0 ? pingMs : null;
 
     return Padding(
       padding: const EdgeInsets.only(top: 8),
@@ -182,9 +182,11 @@ class ServerLocationTile extends StatelessWidget {
               ),
               const SizedBox(width: 12),
 
-              // Ping badge
-              _PingBadge(pingMs: effectivePing, colors: colors),
-              const SizedBox(width: 8),
+              // Ping badge — فقط وقتی پینگ واقعی داریم نشون بده
+              if (effectivePing != null) ...[
+                _PingBadge(pingMs: effectivePing, colors: colors),
+                const SizedBox(width: 8),
+              ],
 
               // Name + badge
               Expanded(

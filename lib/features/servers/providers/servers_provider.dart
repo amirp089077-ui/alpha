@@ -72,7 +72,9 @@ class ServersNotifier extends StateNotifier<ServersState> {
     state = state.copyWith(selectedServerId: 'smart');
   }
 
-  /// پیدا کردن بهترین سرور بر اساس پینگ
+  /// پیدا کردن بهترین سرور بر اساس پینگ واقعی اندازه‌گیری‌شده
+  /// فقط سرورهایی که پینگ واقعی (> 0) دارن رو در نظر می‌گیره
+  /// اگه هیچ پینگ واقعی نداریم null برمیگردونه تا بعداً retry بشه
   ServerItem? get bestServer {
     final allServers = state.groups.expand((g) => g.locations).toList();
     if (allServers.isEmpty) return null;
@@ -83,15 +85,30 @@ class ServersNotifier extends StateNotifier<ServersState> {
     for (final server in allServers) {
       if (server.configUri.isEmpty) continue;
       final ping = state.pingOf(server.id);
-      // -1 یعنی سرور مرده → رد کن
+
+      // -1 = سرور مرده → رد کن
       if (ping == -1) continue;
-      // 0 یعنی هنوز ping نگرفتیم → از مقدار پیش‌فرض سرور استفاده کن
-      final effectivePing = ping > 0 ? ping : server.ping;
-      if (effectivePing < bestPing) {
-        bestPing = effectivePing;
+
+      // 0 = هنوز پینگ واقعی نگرفتیم → رد کن
+      // (برخلاف قبل که از server.ping=50 fallback می‌کرد)
+      if (ping == 0) continue;
+
+      if (ping < bestPing) {
+        bestPing = ping;
         best = server;
       }
     }
+
+    // اگه هیچ پینگ واقعی نداریم، اولین سرور معتبر رو بده
+    // (این حالت فقط قبل از fetchPings اتفاق میفته)
+    if (best == null) {
+      for (final server in allServers) {
+        if (server.configUri.isNotEmpty && state.pingOf(server.id) != -1) {
+          return server;
+        }
+      }
+    }
+
     return best;
   }
 

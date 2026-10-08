@@ -214,28 +214,31 @@ class HomeNotifier extends StateNotifier<HomeState> {
   // ─────────────────────────────────────────────────────────
 
   ServerItem? _pickServer() {
-    final servers = _ref.read(serversProvider);
+    final serversState   = _ref.read(serversProvider);
+    final serversNotifier = _ref.read(serversProvider.notifier);
 
-    // اگه سرور خاصی انتخاب شده
-    if (servers.selectedServerId != null &&
-        servers.selectedServerId != 'smart') {
-      for (final g in servers.groups) {
+    // اگه سرور خاصی انتخاب شده (نه smart)
+    if (serversState.selectedServerId != null &&
+        serversState.selectedServerId != 'smart') {
+      for (final g in serversState.groups) {
         try {
           return g.locations
-              .firstWhere((l) => l.id == servers.selectedServerId);
+              .firstWhere((l) => l.id == serversState.selectedServerId);
         } catch (_) {}
       }
     }
 
-    // smart: اولین سرور با کمترین ping
-    final allServers = servers.groups
-        .expand((g) => g.locations)
-        .toList();
+    // smart: از bestServer که بر اساس پینگ واقعی کار می‌کنه استفاده کن
+    final best = serversNotifier.bestServer;
+    if (best != null) return best;
 
-    if (allServers.isEmpty) return null;
-
-    allServers.sort((a, b) => a.ping.compareTo(b.ping));
-    return allServers.first;
+    // fallback: اولین سرور معتبر
+    for (final g in serversState.groups) {
+      for (final s in g.locations) {
+        if (s.configUri.isNotEmpty) return s;
+      }
+    }
+    return null;
   }
 
   // ─────────────────────────────────────────────────────────
