@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter_v2ray/flutter_v2ray.dart';
 
 enum VpnConnectionStatus {
@@ -133,72 +132,28 @@ class VpnService {
 
   // ── Delay ─────────────────────────────────────────────────
 
-  static const _kPingTimeout   = Duration(seconds: 6);
-  static const _kTcpTimeout    = Duration(seconds: 4);
+  static const _kPingTimeout = Duration(seconds: 8);
 
   /// پینگ یک سرور — ms برمیگردونه، -1 اگه مرده یا timeout شد
-  ///
-  /// استراتژی دو مرحله‌ای:
-  /// ۱. getServerDelay از flutter_v2ray (برای vmess/vless/trojan ساده)
-  /// ۲. اگه نتیجه معتبر نبود → TCP socket مستقیم به host:port سرور
-  ///    (برای xhttp/reality که getServerDelay روشون کار نمی‌کنه)
+  /// طبق داکیومنت فقط getServerDelay — بدون TCP fallback
   Future<int> getDelay(String configUri) async {
     if (!_initialized) await initialize();
     try {
       final V2RayURL v2rayURL = FlutterV2ray.parseFromURL(configUri);
       final config = v2rayURL.getFullConfiguration();
 
-      // مرحله ۱ — تلاش با getServerDelay
       final ping = await _flutterV2ray
           .getServerDelay(config: config)
           .timeout(_kPingTimeout, onTimeout: () => -1);
 
       if (ping > 0) return ping;
-
-      // مرحله ۲ — fallback به TCP ping برای xhttp/reality
-      return await _tcpPing(configUri);
-    } catch (_) {
-      return await _tcpPing(configUri);
-    }
-  }
-
-  /// TCP ping مستقیم به host:port سرور
-  Future<int> _tcpPing(String configUri) async {
-    try {
-      // برای لینک‌های v2ray، host و port در بعد @ هستن
-      // فرمت: vless://uuid@host:port?...
-      String? host;
-      int? port;
-
-      final atIdx = configUri.indexOf('@');
-      final questionIdx = configUri.indexOf('?');
-      if (atIdx != -1) {
-        final hostPort = configUri
-            .substring(atIdx + 1, questionIdx == -1 ? configUri.length : questionIdx)
-            .split(':');
-        if (hostPort.length >= 2) {
-          host = hostPort[0];
-          port = int.tryParse(hostPort[1]);
-        }
-      }
-
-      if (host == null || port == null) return -1;
-
-      final sw = Stopwatch()..start();
-      final socket = await Socket.connect(
-        host,
-        port,
-        timeout: _kTcpTimeout,
-      );
-      sw.stop();
-      socket.destroy();
-      return sw.elapsedMilliseconds;
+      return -1;
     } catch (_) {
       return -1;
     }
   }
 
-  /// پینگ سرور متصل فعلی — فقط وقتی واقعاً متصله صداش بزن
+  /// پینگ سرور متصل فعلی — طبق داکیومنت فقط وقتی CONNECTED
   Future<int> getConnectedDelay() async {
     if (!_initialized) return -1;
     try {
@@ -212,7 +167,7 @@ class VpnService {
     }
   }
 
-  /// پینگ موازی چند سرور — Map<serverId, pingMs>  (-1 = مرده)
+  /// پینگ موازی چند سرور — Map<serverId, pingMs> (-1 = مرده/نامشخص)
   Future<Map<String, int>> pingAll(Map<String, String> serverConfigs) async {
     if (!_initialized) await initialize();
     final futures = serverConfigs.entries.map((e) async {
