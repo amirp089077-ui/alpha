@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.alphavpn.alpha_vpn"
+    namespace = "com.alphavpn.me"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.alphavpn.alpha_vpn"
+        applicationId = "com.alphavpn.me"
         minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

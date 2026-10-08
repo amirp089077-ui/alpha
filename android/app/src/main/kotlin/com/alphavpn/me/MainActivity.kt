@@ -1,4 +1,4 @@
-package com.alphavpn.alpha_vpn
+package com.alphavpn.me
 
 import android.app.Activity
 import android.content.Intent
