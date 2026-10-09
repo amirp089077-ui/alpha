@@ -9,6 +9,7 @@ import '../../../../core/utils/haptics.dart';
 import '../../../../core/utils/persian_digits.dart';
 import '../../../../core/widgets/circle_icon_button.dart';
 import '../../../../core/widgets/gradient_background.dart';
+import '../../../../core/widgets/gradient_button.dart';
 import '../../../../core/widgets/server_tile.dart';
 import '../../../../core/widgets/shimmer_skeleton.dart';
 import '../../data/models/server_models.dart';
@@ -195,29 +196,56 @@ class _ErrorView extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
 
+  // آیا پیام مربوط به اشتراک منقضی/حجم تموم/مسدود هست؟
+  bool get _isSubscriptionError =>
+      message.contains('منقضی') ||
+      message.contains('حجم') ||
+      message.contains('مسدود') ||
+      message.contains('دسترسی');
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.wifi_off_rounded, color: colors.textTertiary, size: 48),
-          const SizedBox(height: 16),
-          Text(
-            S.errorNetwork,
-            style: AppTypography.body.copyWith(color: colors.textSecondary),
-            textDirection: TextDirection.rtl,
-          ),
-          const SizedBox(height: 20),
-          TextButton(
-            onPressed: onRetry,
-            child: Text(
-              S.retry,
-              style: AppTypography.body.copyWith(color: colors.blue),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _isSubscriptionError
+                  ? Icons.lock_outline_rounded
+                  : Icons.wifi_off_rounded,
+              color: _isSubscriptionError ? colors.orange : colors.textTertiary,
+              size: 48,
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              message,
+              style: AppTypography.body.copyWith(color: colors.textSecondary),
+              textDirection: TextDirection.rtl,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            if (_isSubscriptionError) ...[
+              // دکمه تمدید اشتراک
+              GradientButton(
+                label: 'تمدید اشتراک',
+                onPressed: () => context.go(AppRoutes.subscription),
+                height: 48,
+              ),
+            ] else ...[
+              // دکمه تلاش مجدد
+              TextButton(
+                onPressed: onRetry,
+                child: Text(
+                  S.retry,
+                  style: AppTypography.body.copyWith(color: colors.blue),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

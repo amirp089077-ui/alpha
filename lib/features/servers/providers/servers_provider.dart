@@ -4,6 +4,7 @@ import '../../../core/services/api_service.dart';
 import '../../../core/services/vpn_service.dart';
 import '../data/models/server_models.dart';
 import '../data/repository/servers_repository.dart';
+import '../../auth/providers/auth_provider.dart';
 
 // ── Repository + VpnService providers ─────────────────────
 
@@ -18,23 +19,56 @@ final _vpnServiceProvider = Provider<VpnService>((_) => VpnService());
 class ServersNotifier extends StateNotifier<ServersState> {
   final ServersRepository _repo;
   final VpnService        _vpn;
+  final Ref               _ref;
 
-  ServersNotifier(this._repo, this._vpn) : super(const ServersState()) {
+  ServersNotifier(this._repo, this._vpn, this._ref)
+      : super(const ServersState()) {
     loadServers();
   }
 
   // ── Load ─────────────────────────────────────────────────
 
   Future<void> loadServers() async {
+    // چک کن کاربر اشتراک معتبر داره یا نه
+    final user = _ref.read(currentUserProvider);
+    if (user != null) {
+      final isExpired  = user.remainingDays <= 0;
+      final isQuotaDone = user.totalQuotaGb > 0 && user.remainingGb <= 0;
+      final isBanned   = user.status == 'BANNED';
+
+      if (isExpired || isQuotaDone || isBanned) {
+        final msg = isBanned
+            ? 'حساب شما مسدود شده است. با پشتیبانی تماس بگیرید.'
+            : isExpired
+                ? 'اشتراک شما منقضی شده است. لطفاً تمدید کنید.'
+                : 'حجم اینترنت شما تمام شده است. لطفاً تمدید کنید.';
+        state = state.copyWith(
+          isLoading:    false,
+          groups:       [],
+          errorMessage: msg,
+        );
+        return;
+      }
+    }
+
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       final groups = await _repo.fetchServers();
       state = state.copyWith(isLoading: false, groups: groups);
       // بعد از لود، پینگ همه رو بگیر
       fetchPings();
-    } on NetworkException catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.message);
     } on ApiException catch (e) {
+      // بک‌اند 403 = اشتراک منقضی یا مسدود
+      if (e.statusCode == 403) {
+        state = state.copyWith(
+          isLoading:    false,
+          groups:       [],
+          errorMessage: 'اشتراک شما به پایان رسیده لطفا اشتراک تهیه کنید.',
+        );
+      } else {
+        state = state.copyWith(isLoading: false, errorMessage: e.message);
+      }
+    } on NetworkException catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.message);
     } catch (_) {
       state = state.copyWith(isLoading: false, errorMessage: 'خطا در دریافت سرورها');
@@ -133,6 +167,7 @@ final serversProvider =
   return ServersNotifier(
     ref.watch(serversRepositoryProvider),
     ref.watch(_vpnServiceProvider),
+    ref,
   );
 });
 
