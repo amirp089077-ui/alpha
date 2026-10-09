@@ -40,19 +40,18 @@ class UserModel {
   factory UserModel.fromLoginJson(Map<String, dynamic> j) {
     final token = j['token'] as String;
     return UserModel(
-      username:       j['username']        as String,
-      token:          token,
-      planType:       j['plan_type']       as String,
-      status:         j['status']          as String,
-      remainingGb:    (j['remaining_gb']   as num).toDouble(),
-      usedGb:         (j['used_gb']        as num).toDouble(),
-      totalQuotaGb:   (j['total_quota_gb'] as num).toDouble(),
-      remainingDays:  j['remaining_days']  as int,
-      totalDays:      j['total_days']      as int,
-      expiryDate:     j['expiry_date']     as String,
-      maxDevices:     j['max_devices']     as int,
-      activeDevices:  j['active_devices']  as int,
-      // آخر ۴ کاراکتر توکن به عنوان device ID نمایشی
+      username:      j['username']        as String,
+      token:         token,
+      planType:      (j['plan_type']      as String?) ?? 'SINGLE_USER',
+      status:        (j['status']         as String?) ?? 'ACTIVE',
+      remainingGb:   (j['remaining_gb']   as num?)?.toDouble() ?? 0,
+      usedGb:        (j['used_gb']        as num?)?.toDouble() ?? 0,
+      totalQuotaGb:  (j['total_quota_gb'] as num?)?.toDouble() ?? 0,
+      remainingDays: (j['remaining_days'] as int?)  ?? 0,
+      totalDays:     (j['total_days']     as int?)  ?? 0,
+      expiryDate:    (j['expiry_date']    as String?) ?? '',
+      maxDevices:    (j['max_devices']    as int?)  ?? 1,
+      activeDevices: (j['active_devices'] as int?)  ?? 0,
       deviceId: token.length >= 4 ? token.substring(token.length - 4) : token,
     );
   }
@@ -60,18 +59,18 @@ class UserModel {
   /// از پاسخ GET /api/users/me (UserProfile) می‌سازد
   factory UserModel.fromProfileJson(Map<String, dynamic> j, String token) {
     return UserModel(
-      username:       j['username']        as String,
-      token:          token,
-      planType:       j['plan_type']       as String,
-      status:         j['status']          as String,
-      remainingGb:    (j['remaining_gb']   as num).toDouble(),
-      usedGb:         (j['used_gb']        as num).toDouble(),
-      totalQuotaGb:   (j['total_quota_gb'] as num).toDouble(),
-      remainingDays:  j['remaining_days']  as int,
-      totalDays:      j['total_days']      as int,
-      expiryDate:     j['expiry_date']     as String,
-      maxDevices:     j['max_devices']     as int,
-      activeDevices:  j['active_devices']  as int,
+      username:      j['username']        as String,
+      token:         token,
+      planType:      (j['plan_type']      as String?) ?? 'SINGLE_USER',
+      status:        (j['status']         as String?) ?? 'ACTIVE',
+      remainingGb:   (j['remaining_gb']   as num?)?.toDouble() ?? 0,
+      usedGb:        (j['used_gb']        as num?)?.toDouble() ?? 0,
+      totalQuotaGb:  (j['total_quota_gb'] as num?)?.toDouble() ?? 0,
+      remainingDays: (j['remaining_days'] as int?)  ?? 0,
+      totalDays:     (j['total_days']     as int?)  ?? 0,
+      expiryDate:    (j['expiry_date']    as String?) ?? '',
+      maxDevices:    (j['max_devices']    as int?)  ?? 1,
+      activeDevices: (j['active_devices'] as int?)  ?? 0,
       deviceId: token.length >= 4 ? token.substring(token.length - 4) : token,
     );
   }

@@ -47,17 +47,20 @@ class ServerItem {
 
   factory ServerItem.fromJson(Map<String, dynamic> j) {
     return ServerItem(
-      id:        j['id']         as String,
-      country:   j['country']    as String,
-      city:      j['city']       as String,
-      flag:      j['flag']       as String,
-      host:      j['host']       as String,
-      port:      j['port']       as int,
-      badge:     _parseBadge(j['badge'] as String?),
-      emoji:     (j['emoji']     as String?) ?? '',
-      isPro:     (j['is_pro']    as bool?)   ?? false,
+      id:        j['id']          as String,
+      // بک‌اند ممکنه country یا name داشته باشه
+      country:   (j['country']    as String?) ?? (j['name'] as String?) ?? '',
+      city:      (j['city']       as String?) ?? '',
+      // بک‌اند flag یا emoji میفرسته
+      flag:      (j['flag']       as String?) ?? (j['emoji'] as String?) ?? '🌐',
+      host:      (j['host']       as String?) ?? '',
+      port:      (j['port']       as int?)    ?? 443,
+      badge:     _parseBadge((j['badge'] as String?)),
+      emoji:     (j['emoji']      as String?) ?? (j['flag'] as String?) ?? '',
+      isPro:     (j['is_pro']     as bool?)   ?? false,
+      // config_uri مستقیم یا داخل raw_config
       configUri: (j['config_uri'] as String?) ?? '',
-      ping:      (j['ping']      as int?)    ?? 0,  // 0 = پینگ واقعی هنوز نگرفتیم
+      ping:      (j['ping']       as int?)    ?? 0,
     );
   }
 

@@ -8,10 +8,23 @@ class ServersRepository {
   /// GET /api/servers — نیاز به توکن دارد
   Future<List<ServerGroup>> fetchServers() async {
     final json = await _api.get('/api/servers', auth: true);
-    final rawList = json['servers'] as List<dynamic>;
+
+    // بک‌اند ممکنه { servers: [...] } یا { data: [...] } یا مستقیم [] بفرسته
+    List<dynamic> rawList;
+    if (json.containsKey('servers')) {
+      rawList = json['servers'] as List<dynamic>;
+    } else if (json.containsKey('data') && json['data'] is List) {
+      rawList = json['data'] as List<dynamic>;
+    } else if (json.containsKey('items') && json['items'] is List) {
+      rawList = json['items'] as List<dynamic>;
+    } else {
+      // fallback: اگه خود json یه Map از سرورها بود
+      rawList = [];
+    }
 
     final items = rawList
         .map((e) => ServerItem.fromJson(e as Map<String, dynamic>))
+        .where((s) => s.configUri.isNotEmpty) // فقط سرورهایی که config دارن
         .toList();
 
     return _groupByCountry(items);

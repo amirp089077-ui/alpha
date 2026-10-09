@@ -117,13 +117,17 @@ class UsageService {
 
   Future<void> _reportToApi({required double usedGb}) async {
     try {
-      await _api.post(
-        '/api/usage/report',
-        {'used_gb': usedGb},
+      // بک‌اند: PATCH /api/users/me/usage
+      await _api.patch(
+        '/api/users/me/usage',
+        {
+          'used_gb':      usedGb,
+          'remaining_gb': (_limitGb - usedGb).clamp(0, double.maxFinite),
+        },
         auth: true,
       );
     } catch (_) {
-      // اگه API در دسترس نبود، فقط local ذخیره می‌کنیم
+      // سایلنت fail — دوباره در tick بعدی تلاش می‌کنیم
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_kLastReportTime, DateTime.now().millisecondsSinceEpoch);

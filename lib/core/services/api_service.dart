@@ -83,10 +83,21 @@ class ApiService {
   Map<String, dynamic> _parse(http.Response res) {
     final body = utf8.decode(res.bodyBytes);
     final json = jsonDecode(body);
+
     if (res.statusCode >= 200 && res.statusCode < 300) {
+      // بک‌اند همه چیز رو داخل { success: true, data: {...} } میفرسته
+      if (json is Map<String, dynamic> &&
+          json.containsKey('success') &&
+          json.containsKey('data')) {
+        final data = json['data'];
+        return data is Map<String, dynamic> ? data : {'data': data};
+      }
       return json is Map<String, dynamic> ? json : {'data': json};
     }
-    final detail = json is Map ? (json['detail'] ?? 'خطای ناشناخته') : 'خطای ناشناخته';
+
+    final detail = json is Map
+        ? (json['detail'] ?? json['message'] ?? 'خطای ناشناخته')
+        : 'خطای ناشناخته';
     switch (res.statusCode) {
       case 401:
         throw UnauthorizedException(detail.toString());
