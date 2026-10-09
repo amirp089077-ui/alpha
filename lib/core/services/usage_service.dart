@@ -8,16 +8,12 @@ import 'vpn_service.dart';
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
 
-const _kUsedBytes        = 'usage_used_bytes';
-const _kLastReportTime   = 'usage_last_report';
-const _kLastReportedUsed = 'usage_last_reported_used_gb'; // آخرین used_gb که به API فرستادیم
+const _kLastReportedUsed    = 'usage_last_reported_used_gb';
+const _kPendingBytes        = 'usage_pending_bytes';         // تسک ۳: persist pending
+const _kLastReportTime      = 'usage_last_report';
 
 // ── UsageService ──────────────────────────────────────────────────────────────
 
-/// سرویس ردیابی حجم مصرفی:
-/// - هر ۶۰ ثانیه آمار VPN رو جمع می‌کنه
-/// - به API گزارش می‌فرسته
-/// - اگه به سقف رسید VPN رو قطع می‌کنه
 class UsageService {
   static final UsageService _instance = UsageService._internal();
   factory UsageService() => _instance;
@@ -27,98 +23,137 @@ class UsageService {
 
   Timer? _timer;
 
-  // آخرین مقدار bytes که از VpnStats خوندیم
   int _lastUpload   = 0;
   int _lastDownload = 0;
-
-  // کل bytes این session که هنوز گزارش ندادیم
   int _pendingBytes = 0;
 
-  // آیا در حال گزارش دادن هستیم (از overlap جلوگیری کن)
   bool _reporting = false;
 
-  // سقف حجم (bytes) — از auth/subscription میاد
-  double _limitGb    = 0;  // 0 = بی‌نهایت
-  double _usedGb     = 0;
+  double _limitGb = 0;
+  double _usedGb  = 0;
 
-  // callback برای قطع VPN وقتی سقف رسید
   VoidCallback? onLimitReached;
 
-  // ── Start / Stop ──────────────────────────────────────────
+  // ── Start — async تا data race نباشه ─────────────────────
 
-  void start({
+  // تسک ۱: start رو async کردیم تا lastReported رو await کنه
+  // قبلاً: .then() همیشه توسط خط بعدی `_usedGb = usedGb` overwrite می‌شد
+  Future<void> start({
     required double limitGb,
     required double usedGb,
     required VoidCallback onLimitReached,
-  }) {
+  }) async {
     _limitGb            = limitGb;
-    // usedGb باید حداقل برابر آخرین مقداری باشه که به API فرستادیم
-    // این جلوگیری می‌کنه از اینکه بعد از restart مقدار به عقب برگرده
-    _loadLastReportedUsed().then((lastReported) {
-      _usedGb = usedGb > lastReported ? usedGb : lastReported;
-    });
-    _usedGb             = usedGb;
     this.onLimitReached = onLimitReached;
     _lastUpload         = 0;
     _lastDownload       = 0;
-    _pendingBytes       = 0;
+    _reporting          = false;
+
+    // تسک ۱: await کن تا lastReported درست لود بشه
+    final prefs        = await SharedPreferences.getInstance();
+    final lastReported = prefs.getDouble(_kLastReportedUsed) ?? 0.0;
+
+    // تسک ۳: pending bytes از session قبلی رو restore کن
+    final savedPending = prefs.getInt(_kPendingBytes) ?? 0;
+
+    // usedGb باید حداقل برابر آخرین مقدار ارسالی به API باشه
+    _usedGb = [usedGb, lastReported].reduce((a, b) => a > b ? a : b);
+
+    // pending bytes از کرش قبلی رو اضافه کن
+    _pendingBytes = savedPending;
 
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _tick());
   }
 
-  Future<double> _loadLastReportedUsed() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_kLastReportedUsed) ?? 0.0;
-  }
+  // ── Stop + flush فوری ────────────────────────────────────
 
-  void stop() {
+  // تسک ۳: موقع disconnect، pending bytes رو فوری flush کن
+  Future<void> stop({bool flush = false}) async {
     _timer?.cancel();
-    _timer = null;
+    _timer   = null;
+
+    if (flush && _pendingBytes > 0) {
+      await _tick(force: true);
+    }
+
+    // pending bytes رو persist کن (اگه flush ناموفق بود)
+    if (_pendingBytes > 0) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_kPendingBytes, _pendingBytes);
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kPendingBytes);
+    }
   }
 
-  /// آپدیت stats از VpnStats stream
+  // ── updateStats ───────────────────────────────────────────
+
   void updateStats(VpnStats stats) {
     final deltaUp   = (stats.upload   - _lastUpload).clamp(0, double.maxFinite).toInt();
     final deltaDown = (stats.download - _lastDownload).clamp(0, double.maxFinite).toInt();
-
     _lastUpload   = stats.upload;
     _lastDownload = stats.download;
     _pendingBytes += deltaUp + deltaDown;
+
+    // تسک ۳: هر ۱۰ ثانیه یه بار pending رو persist کن
+    // (جلوگیری از از دست رفتن bytes در صورت crash)
+    _maybePersistPending();
   }
 
-  /// آپدیت سقف و مقدار مصرف‌شده (از auth refresh)
+  int _persistCounter = 0;
+  void _maybePersistPending() {
+    _persistCounter++;
+    if (_persistCounter % 10 == 0) {
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setInt(_kPendingBytes, _pendingBytes);
+      });
+    }
+  }
+
   void updateLimit({required double limitGb, required double usedGb}) {
     _limitGb = limitGb;
-    _usedGb  = usedGb;
+    // فقط اگه مقدار جدید بیشتره update کن (جلوگیری از رفتن به عقب)
+    if (usedGb > _usedGb) _usedGb = usedGb;
   }
 
-  // ── Tick هر ۶۰ ثانیه ─────────────────────────────────────
+  // ── getter برای تسک ۲ ────────────────────────────────────
 
-  Future<void> _tick() async {
-    if (_pendingBytes <= 0) return;
+  /// مقدار دقیق used_gb که UsageService داره — شامل pending session
+  double get currentUsedGb {
+    final pendingGb = _pendingBytes / (1024 * 1024 * 1024);
+    return _usedGb + pendingGb;
+  }
+
+  bool get isQuotaExceeded =>
+      _limitGb > 0 && currentUsedGb >= _limitGb;
+
+  // ── Tick ─────────────────────────────────────────────────
+
+  Future<void> _tick({bool force = false}) async {
+    if (_pendingBytes <= 0 && !force) return;
     if (_reporting) return;
     _reporting = true;
 
     try {
-      final pendingGb  = _pendingBytes / (1024 * 1024 * 1024);
-      final newUsedGb  = _usedGb + pendingGb;
+      final pendingGb = _pendingBytes / (1024 * 1024 * 1024);
+      final newUsedGb = _usedGb + pendingGb;
 
-      // گزارش به API
       await _reportToApi(usedGb: newUsedGb);
-
-      // ذخیره local
-      await _saveLocal(usedGb: newUsedGb);
 
       _usedGb       = newUsedGb;
       _pendingBytes = 0;
+
+      // پاک کردن pending از SharedPreferences بعد از flush موفق
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kPendingBytes);
 
       // چک سقف
       if (_limitGb > 0 && _usedGb >= _limitGb) {
         onLimitReached?.call();
       }
     } catch (_) {
-      // سایلنت fail — دوباره در tick بعدی تلاش می‌کنیم
+      // سایلنت fail — دوباره در tick بعدی
     } finally {
       _reporting = false;
     }
@@ -127,59 +162,29 @@ class UsageService {
   // ── گزارش به API ──────────────────────────────────────────
 
   Future<void> _reportToApi({required double usedGb}) async {
-    try {
-      // خوندن آخرین used_gb که به API فرستادیم
-      final prefs = await SharedPreferences.getInstance();
-      final lastReported = prefs.getDouble(_kLastReportedUsed) ?? 0.0;
+    final prefs        = await SharedPreferences.getInstance();
+    final lastReported = prefs.getDouble(_kLastReportedUsed) ?? 0.0;
 
-      // validation: used_gb هرگز نباید از آخرین مقدار ارسالی کمتر بشه
-      // اگه کوچکتر بود یعنی چیزی اشتباه شده — مقدار قدیمی رو نگه دار
-      final safeUsedGb = usedGb < lastReported ? lastReported : usedGb;
-      final remainingGb = (_limitGb - safeUsedGb).clamp(0.0, double.maxFinite);
+    // مطمئن شو used_gb هرگز کاهش پیدا نمی‌کنه
+    final safeUsedGb  = usedGb < lastReported ? lastReported : usedGb;
+    final remainingGb = (_limitGb - safeUsedGb).clamp(0.0, double.maxFinite);
 
-      await _api.patch(
-        '/api/users/me/usage',
-        {
-          'used_gb':      double.parse(safeUsedGb.toStringAsFixed(4)),
-          'remaining_gb': double.parse(remainingGb.toStringAsFixed(4)),
-        },
-        auth: true,
-      );
+    await _api.patch(
+      '/api/users/me/usage',
+      {
+        'used_gb':      double.parse(safeUsedGb.toStringAsFixed(4)),
+        'remaining_gb': double.parse(remainingGb.toStringAsFixed(4)),
+      },
+      auth: true,
+    );
 
-      // ذخیره آخرین مقدار ارسالی
-      await prefs.setDouble(_kLastReportedUsed, safeUsedGb);
-      await prefs.setInt(_kLastReportTime, DateTime.now().millisecondsSinceEpoch);
-    } catch (_) {
-      // سایلنت fail — دوباره در tick بعدی تلاش می‌کنیم
-    }
+    await prefs.setDouble(_kLastReportedUsed, safeUsedGb);
+    await prefs.setInt(_kLastReportTime, DateTime.now().millisecondsSinceEpoch);
   }
-
-  // ── ذخیره local ───────────────────────────────────────────
-
-  Future<void> _saveLocal({required double usedGb}) async {
-    final prefs = await SharedPreferences.getInstance();
-    // ذخیره به صورت bytes برای دقت بیشتر
-    final usedBytes = (usedGb * 1024 * 1024 * 1024).toInt();
-    await prefs.setInt(_kUsedBytes, usedBytes);
-  }
-
-  // ── چک سقف قبل از اتصال ──────────────────────────────────
-
-  /// true = حجم کافی داره، false = تموم شده
-  Future<bool> checkQuota({
-    required double limitGb,
-    required double usedGb,
-  }) async {
-    if (limitGb <= 0) return true; // بی‌نهایت
-    return usedGb < limitGb;
-  }
-
-  // ── گرفتن آخرین مقدار مصرف local ────────────────────────
 
   static Future<double> getLocalUsedGb() async {
     final prefs = await SharedPreferences.getInstance();
-    final bytes = prefs.getInt(_kUsedBytes) ?? 0;
-    return bytes / (1024 * 1024 * 1024);
+    return prefs.getDouble(_kLastReportedUsed) ?? 0.0;
   }
 }
 

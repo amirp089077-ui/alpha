@@ -66,7 +66,6 @@ class HomeNotifier extends StateNotifier<HomeState> {
     if (status == VpnConnectionStatus.connected) {
       _startSecTimer();
       _startPingTimer();
-      // شروع ردیابی حجم
       _usage.start(
         limitGb:        _ref.read(currentUserProvider)?.totalQuotaGb ?? 0,
         usedGb:         _ref.read(currentUserProvider)?.usedGb       ?? 0,
@@ -76,7 +75,8 @@ class HomeNotifier extends StateNotifier<HomeState> {
                status == VpnConnectionStatus.error) {
       _stopSecTimer();
       _stopPingTimer();
-      _usage.stop();
+      // flush: true — bytes رو فوری بفرست موقع disconnect
+      _usage.stop(flush: true);
       if (status == VpnConnectionStatus.disconnected) {
         state = state.copyWith(
           connectionSeconds: 0,
@@ -170,7 +170,15 @@ class HomeNotifier extends StateNotifier<HomeState> {
     final user = _ref.read(currentUserProvider);
     if (user == null) return false;
     if (user.totalQuotaGb <= 0) return false; // بی‌نهایت
-    return user.usedGb >= user.totalQuotaGb;
+
+    // تسک ۲: به جای user.usedGb (قدیمی از login)، از UsageService بخون
+    // UsageService.currentUsedGb شامل pending bytes این session هم هست
+    final liveUsedGb = _usage.currentUsedGb;
+
+    // اگه UsageService هنوز start نشده (قبل از اولین اتصال)، از auth بخون
+    final effectiveUsedGb = liveUsedGb > 0 ? liveUsedGb : user.usedGb;
+
+    return effectiveUsedGb >= user.totalQuotaGb;
   }
 
   // ─────────────────────────────────────────────────────────
@@ -324,7 +332,7 @@ class HomeNotifier extends StateNotifier<HomeState> {
     _statsSub?.cancel();
     _stopSecTimer();
     _stopPingTimer();
-    _usage.stop();
+    _usage.stop(flush: true);
     super.dispose();
   }
 }
