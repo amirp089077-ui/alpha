@@ -8,8 +8,9 @@ import 'vpn_service.dart';
 
 // ── Keys ──────────────────────────────────────────────────────────────────────
 
-const _kUsedBytes      = 'usage_used_bytes';      // کل bytes مصرف‌شده (local)
-const _kLastReportTime = 'usage_last_report';     // آخرین زمان گزارش به API
+const _kUsedBytes        = 'usage_used_bytes';
+const _kLastReportTime   = 'usage_last_report';
+const _kLastReportedUsed = 'usage_last_reported_used_gb'; // آخرین used_gb که به API فرستادیم
 
 // ── UsageService ──────────────────────────────────────────────────────────────
 
@@ -50,15 +51,25 @@ class UsageService {
     required double usedGb,
     required VoidCallback onLimitReached,
   }) {
-    _limitGb        = limitGb;
-    _usedGb         = usedGb;
+    _limitGb            = limitGb;
+    // usedGb باید حداقل برابر آخرین مقداری باشه که به API فرستادیم
+    // این جلوگیری می‌کنه از اینکه بعد از restart مقدار به عقب برگرده
+    _loadLastReportedUsed().then((lastReported) {
+      _usedGb = usedGb > lastReported ? usedGb : lastReported;
+    });
+    _usedGb             = usedGb;
     this.onLimitReached = onLimitReached;
-    _lastUpload     = 0;
-    _lastDownload   = 0;
-    _pendingBytes   = 0;
+    _lastUpload         = 0;
+    _lastDownload       = 0;
+    _pendingBytes       = 0;
 
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 60), (_) => _tick());
+  }
+
+  Future<double> _loadLastReportedUsed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getDouble(_kLastReportedUsed) ?? 0.0;
   }
 
   void stop() {
@@ -117,20 +128,30 @@ class UsageService {
 
   Future<void> _reportToApi({required double usedGb}) async {
     try {
-      final remainingGb = (_limitGb - usedGb).clamp(0.0, double.maxFinite);
+      // خوندن آخرین used_gb که به API فرستادیم
+      final prefs = await SharedPreferences.getInstance();
+      final lastReported = prefs.getDouble(_kLastReportedUsed) ?? 0.0;
+
+      // validation: used_gb هرگز نباید از آخرین مقدار ارسالی کمتر بشه
+      // اگه کوچکتر بود یعنی چیزی اشتباه شده — مقدار قدیمی رو نگه دار
+      final safeUsedGb = usedGb < lastReported ? lastReported : usedGb;
+      final remainingGb = (_limitGb - safeUsedGb).clamp(0.0, double.maxFinite);
+
       await _api.patch(
         '/api/users/me/usage',
         {
-          'used_gb':      double.parse(usedGb.toStringAsFixed(4)),
+          'used_gb':      double.parse(safeUsedGb.toStringAsFixed(4)),
           'remaining_gb': double.parse(remainingGb.toStringAsFixed(4)),
         },
         auth: true,
       );
+
+      // ذخیره آخرین مقدار ارسالی
+      await prefs.setDouble(_kLastReportedUsed, safeUsedGb);
+      await prefs.setInt(_kLastReportTime, DateTime.now().millisecondsSinceEpoch);
     } catch (_) {
       // سایلنت fail — دوباره در tick بعدی تلاش می‌کنیم
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_kLastReportTime, DateTime.now().millisecondsSinceEpoch);
   }
 
   // ── ذخیره local ───────────────────────────────────────────
