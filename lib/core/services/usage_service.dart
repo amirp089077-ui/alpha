@@ -117,12 +117,12 @@ class UsageService {
 
   Future<void> _reportToApi({required double usedGb}) async {
     try {
-      // بک‌اند: PATCH /api/users/me/usage
+      final remainingGb = (_limitGb - usedGb).clamp(0.0, double.maxFinite);
       await _api.patch(
         '/api/users/me/usage',
         {
-          'used_gb':      usedGb,
-          'remaining_gb': (_limitGb - usedGb).clamp(0, double.maxFinite),
+          'used_gb':      double.parse(usedGb.toStringAsFixed(4)),
+          'remaining_gb': double.parse(remainingGb.toStringAsFixed(4)),
         },
         auth: true,
       );

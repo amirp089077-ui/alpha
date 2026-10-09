@@ -41,7 +41,7 @@ class ServersNotifier extends StateNotifier<ServersState> {
             ? 'حساب شما مسدود شده است. با پشتیبانی تماس بگیرید.'
             : isExpired
                 ? 'اشتراک شما منقضی شده است. لطفاً تمدید کنید.'
-                : 'حجم اینترنت شما تمام شده است. لطفاً تمدید کنید.';
+                : 'حجم فیلترشکن شما تمام شده است. لطفاً تمدید کنید.';
         state = state.copyWith(
           isLoading:    false,
           groups:       [],
