@@ -9,6 +9,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.AdaptiveIconDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.net.VpnService
 import android.os.Build
 import io.flutter.embedding.android.FlutterActivity
@@ -19,8 +20,9 @@ import java.io.ByteArrayOutputStream
 class MainActivity : FlutterActivity() {
 
     companion object {
-        private const val VPN_CHANNEL  = "com.alphavpn/vpn_permission"
-        private const val APPS_CHANNEL = "com.alphavpn/apps"
+        private const val VPN_CHANNEL      = "com.alphavpn/vpn_permission"
+        private const val APPS_CHANNEL     = "com.alphavpn/apps"
+        private const val LAUNCHER_CHANNEL = "alpha_vpn/launcher"
         private const val VPN_PERMISSION_CODE = 100
     }
 
@@ -69,6 +71,31 @@ class MainActivity : FlutterActivity() {
                             }
                         }
                     }.start()
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // ── Launcher channel — باز کردن URL در مرورگر ────────────────
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            LAUNCHER_CHANNEL
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "openUrl" -> {
+                    val url = call.argument<String>("url")
+                    if (url != null) {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("LAUNCH_ERROR", e.message, null)
+                        }
+                    } else {
+                        result.error("INVALID_URL", "URL is null", null)
+                    }
                 }
                 else -> result.notImplemented()
             }

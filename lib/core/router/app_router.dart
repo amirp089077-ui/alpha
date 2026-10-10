@@ -7,17 +7,19 @@ import '../../features/servers/presentation/screens/servers_screen.dart';
 import '../../features/subscription/presentation/screens/subscription_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/settings/whitelist/presentation/screens/whitelist_screen.dart';
+import '../../features/notifications/presentation/screens/notifications_screen.dart';
 
 // Route name constants
 class AppRoutes {
-  static const splash       = '/';
-  static const login        = '/login';
-  static const shell        = '/app';
-  static const home         = '/app/home';
-  static const servers      = '/app/servers';
-  static const subscription = '/app/subscription';
-  static const settings     = '/app/settings';
-  static const whitelist    = '/app/settings/whitelist';
+  static const splash         = '/';
+  static const login          = '/login';
+  static const shell          = '/app';
+  static const home           = '/app/home';
+  static const servers        = '/app/servers';
+  static const subscription   = '/app/subscription';
+  static const settings       = '/app/settings';
+  static const whitelist      = '/app/settings/whitelist';
+  static const notifications  = '/app/notifications';
 }
 
 final appRouter = GoRouter(
@@ -53,6 +55,10 @@ final appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.whitelist,
           builder: (ctx, state) => const WhitelistScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.notifications,
+          builder: (ctx, state) => const NotificationsScreen(),
         ),
       ],
     ),

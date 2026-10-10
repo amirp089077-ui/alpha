@@ -13,6 +13,7 @@ import '../../../../core/widgets/app_logo_mark.dart';
 import '../../../../core/widgets/gradient_button.dart';
 import '../../data/models/auth_models.dart';
 import '../../providers/auth_provider.dart';
+import '../../../settings/providers/config_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -236,30 +237,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                     const SizedBox(height: 28),
 
-                    // ── Support link ──────────────────────────────────
-                    GestureDetector(
-                      onTap: () => launchUrl(
-                          Uri.parse('https://t.me/alphavpn_support')),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            S.loginSupportArrow,
-                            style: TextStyle(
-                              color: AppColorsLight.teal,
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            S.loginSupport,
-                            style: AppTypography.caption
-                                .copyWith(color: AppColorsLight.teal),
-                            textDirection: TextDirection.rtl,
-                          ),
-                        ],
-                      ),
-                    ),
+                    // ── Support link (از config دریافت می‌شه) ─────────
+                    _SupportLink(),
 
                     const SizedBox(height: 24),
                   ],
@@ -268,6 +247,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ── Support link (از configProvider می‌خونه) ─────────────────────────────────
+
+class _SupportLink extends ConsumerWidget {
+  const _SupportLink();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final config      = ref.watch(configProvider);
+    final supportUrl  = config.channelUrl.isNotEmpty
+        ? config.channelUrl
+        : 'https://t.me/AlphaSupport_ir';
+    final supportText = config.telegramSupport.isNotEmpty
+        ? config.telegramSupport
+        : S.loginSupport;
+
+    return GestureDetector(
+      onTap: () => launchUrl(Uri.parse(supportUrl),
+          mode: LaunchMode.externalApplication),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            S.loginSupportArrow,
+            style: TextStyle(color: AppColorsLight.teal, fontSize: 16),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            supportText,
+            style: AppTypography.caption.copyWith(color: AppColorsLight.teal),
+            textDirection: TextDirection.rtl,
+          ),
+        ],
       ),
     );
   }

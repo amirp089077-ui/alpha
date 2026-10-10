@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// آدرس بک‌اند
-const String kBaseUrl = 'http://179.237.79.75';
+const String kBaseUrl = 'http://83.228.224.223:8000';
 
 const _storage = FlutterSecureStorage();
 const _tokenKey = 'alpha_vpn_token';
