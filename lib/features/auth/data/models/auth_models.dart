@@ -75,6 +75,46 @@ class UserModel {
     );
   }
 
+  /// تبدیل به JSON برای ذخیره‌سازی محلی (آفلاین)
+  Map<String, dynamic> toJson() => {
+    'username': username,
+    'token': token,
+    'plan_type': planType,
+    'status': status,
+    'remaining_gb': remainingGb,
+    'used_gb': usedGb,
+    'total_quota_gb': totalQuotaGb,
+    'remaining_days': remainingDays,
+    'total_days': totalDays,
+    'expiry_date': expiryDate,
+    'max_devices': maxDevices,
+    'active_devices': activeDevices,
+    'device_name': deviceName,
+    'device_id': deviceId,
+  };
+
+  /// بازیابی از داده‌های ذخیره‌شده محلی
+  factory UserModel.fromJson(Map<String, dynamic> j) {
+    final token = (j['token'] as String?) ?? '';
+    return UserModel(
+      username:      (j['username']        as String?) ?? '',
+      token:         token,
+      planType:      (j['plan_type']      as String?) ?? 'SINGLE_USER',
+      status:        (j['status']         as String?) ?? 'ACTIVE',
+      remainingGb:   (j['remaining_gb']   as num?)?.toDouble() ?? 0,
+      usedGb:        (j['used_gb']        as num?)?.toDouble() ?? 0,
+      totalQuotaGb:  (j['total_quota_gb'] as num?)?.toDouble() ?? 0,
+      remainingDays: (j['remaining_days'] as int?)  ?? 0,
+      totalDays:     (j['total_days']     as int?)  ?? 0,
+      expiryDate:    (j['expiry_date']    as String?) ?? '',
+      maxDevices:    (j['max_devices']    as int?)  ?? 1,
+      activeDevices: (j['active_devices'] as int?)  ?? 0,
+      deviceName:    (j['device_name']    as String?) ?? 'این دستگاه',
+      deviceId:      (j['device_id']      as String?) ??
+          (token.length >= 4 ? token.substring(token.length - 4) : token),
+    );
+  }
+
   UserModel copyWith({
     String?  username,
     String?  token,

@@ -1,9 +1,44 @@
+import 'dart:convert';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../../core/services/api_service.dart';
 import '../models/auth_models.dart';
 
 class AuthRepository {
   final ApiService _api;
+  static const _storage = FlutterSecureStorage();
+  static const _userCacheKey = 'alpha_vpn_cached_user';
+
   AuthRepository({ApiService? api}) : _api = api ?? ApiService();
+
+  // ── Cache management ──────────────────────────────────────
+
+  Future<void> saveCachedUser(UserModel user) async {
+    try {
+      await _storage.write(
+        key: _userCacheKey,
+        value: jsonEncode(user.toJson()),
+      );
+    } catch (_) {}
+  }
+
+  Future<UserModel?> getCachedUser() async {
+    try {
+      final raw = await _storage.read(key: _userCacheKey);
+      if (raw != null && raw.isNotEmpty) {
+        final j = jsonDecode(raw);
+        if (j is Map<String, dynamic>) {
+          return UserModel.fromJson(j);
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<void> deleteCachedUser() async {
+    try {
+      await _storage.delete(key: _userCacheKey);
+    } catch (_) {}
+  }
 
   // ── Login ─────────────────────────────────────────────────
 
@@ -16,6 +51,7 @@ class AuthRepository {
     );
     final user = UserModel.fromLoginJson(json);
     await _api.saveToken(user.token);
+    await saveCachedUser(user);
     return user;
   }
 
@@ -24,14 +60,42 @@ class AuthRepository {
   /// اگر توکن ذخیره‌شده‌ای وجود دارد پروفایل را می‌گیرد؛ در غیر این صورت null
   Future<UserModel?> restoreSession() async {
     final token = await _api.getToken();
-    if (token == null || token.isEmpty) return null;
+    if (token == null || token.isEmpty) {
+      await deleteCachedUser();
+      return null;
+    }
+
     try {
       final json = await _api.get('/api/users/me', auth: true);
-      return UserModel.fromProfileJson(json, token);
+      final user = UserModel.fromProfileJson(json, token);
+      await saveCachedUser(user);
+      return user;
     } on UnauthorizedException {
-      // توکن منقضی شده — پاک می‌کنیم
+      // فقط زمانی که سرور 401 بدهد یعنی توکن باطل است — پاک می‌کنیم
       await _api.deleteToken();
+      await deleteCachedUser();
       return null;
+    } catch (_) {
+      // در صورت هرگونه خطای شبکه، قطعی اینترنت، تایم‌اوت یا خطای موقت سرور:
+      // کاربر به هیچ وجه نباید از حساب خارج شود! اطلاعات ذخیره‌شده محلی را برمی‌گردانیم.
+      final cached = await getCachedUser();
+      if (cached != null) {
+        return cached;
+      }
+      return UserModel(
+        username: 'کاربر',
+        token: token,
+        planType: 'SINGLE_USER',
+        status: 'ACTIVE',
+        remainingGb: 0,
+        usedGb: 0,
+        totalQuotaGb: 0,
+        remainingDays: 0,
+        totalDays: 0,
+        expiryDate: '',
+        maxDevices: 1,
+        activeDevices: 0,
+      );
     }
   }
 
@@ -45,6 +109,8 @@ class AuthRepository {
       // حتی اگر بک‌اند جواب نداد، توکن محلی را پاک می‌کنیم
     } finally {
       await _api.deleteToken();
+      await deleteCachedUser();
     }
   }
 }
+

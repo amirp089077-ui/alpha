@@ -77,25 +77,35 @@ class ServersNotifier extends StateNotifier<ServersState> {
 
   Future<void> refresh() => loadServers();
 
-  // ── Ping همه سرورها به صورت موازی ────────────────────────
+  // ── Ping همه سرورها به صورت کنترل‌شده ────────────────────
 
   Future<void> fetchPings() async {
     if (state.groups.isEmpty) return;
 
     state = state.copyWith(isPinging: true);
 
-    // Map<serverId, configUri>
-    final Map<String, String> configs = {};
-    for (final group in state.groups) {
-      for (final server in group.locations) {
-        if (server.configUri.isNotEmpty) {
-          configs[server.id] = server.configUri;
-        }
-      }
-    }
-
+    final allServers = state.groups.expand((g) => g.locations).toList();
     await _vpn.initialize();
-    final pings = await _vpn.pingAll(configs);
+
+    final Map<String, int> pings = {};
+    const batchSize = 3;
+    for (int i = 0; i < allServers.length; i += batchSize) {
+      final batch = allServers.sublist(
+        i,
+        i + batchSize > allServers.length ? allServers.length : i + batchSize,
+      );
+      final batchResults = await Future.wait(
+        batch.map((s) async {
+          final ping = await _vpn.getDelay(
+            s.configUri,
+            host: s.host.isNotEmpty ? s.host : null,
+            port: s.port > 0 ? s.port : null,
+          );
+          return MapEntry(s.id, ping);
+        }),
+      );
+      pings.addEntries(batchResults);
+    }
 
     state = state.copyWith(isPinging: false, pings: pings);
   }

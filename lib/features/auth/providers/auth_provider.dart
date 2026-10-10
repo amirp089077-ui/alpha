@@ -32,7 +32,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = const AuthState(status: AuthStatus.unauthenticated);
       }
     } catch (_) {
-      state = const AuthState(status: AuthStatus.unauthenticated);
+      // در صورت هرگونه خطا، اگر کاربر ذخیره‌شده‌ای داریم لاگ‌اوت نکن
+      final cached = await _repo.getCachedUser();
+      if (cached != null) {
+        state = state.copyWith(status: AuthStatus.authenticated, user: cached);
+      } else {
+        state = const AuthState(status: AuthStatus.unauthenticated);
+      }
     }
   }
 
