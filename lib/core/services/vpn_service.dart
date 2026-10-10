@@ -133,91 +133,99 @@ class VpnService {
     _flutterV2ray.stopV2Ray();
   }
 
-  // ── Delay ─────────────────────────────────────────────────
+  // ── Delay — بر اساس استاندارد هسته v2rayNG ─────────────────
 
-  static const _kPingTimeout = Duration(seconds: 4);
-
-  /// پینگ یک سرور — ms برمیگردونه، -1 اگه مرده یا timeout شد
-  /// مرحله ۱: تلاش با هسته V2Ray و آدرس سریع generate_204 (Cloudflare و سپس gstatic)
-  /// مرحله ۲: اگر هسته شکست خورد یا منفی برگرداند → fallback به TCP socket به host:port سرور
+  /// پینگ واقعی یک سرور از داخل تونل V2Ray به آدرس generate_204
+  /// دقیقاً منطبق بر الگوریتم startRealPing در سورس v2rayNG:
+  /// ۱. پیش‌بررسی سریع اتصال TCP با سقف ۱.۲ ثانیه برای فیلتر کردن فوری سرورهای قطع/بلاک
+  /// ۲. تست تأخیر واقعی از هسته با آدرس https://www.gstatic.com/generate_204
+  /// ۳. در صورت عدم موفقیت، تست ثانویه با https://www.google.com/generate_204
+  /// ۴. اگر هسته جواب ندهد مقدار -1 (بدون fallback به TCP تقلبی) برگردانده می‌شود.
   Future<int> getDelay(String configUri, {String? host, int? port}) async {
+    if (configUri.isEmpty) return -1;
     if (!_initialized) await initialize();
 
-    // اگر کانفیگ معتبر است، ابتدا با هسته V2Ray تست کن
-    if (configUri.isNotEmpty) {
-      try {
-        final V2RayURL v2rayURL = FlutterV2ray.parseFromURL(configUri);
-        final config = v2rayURL.getFullConfiguration();
-
-        // تست با کلودفلر (سریع‌ترین و بدون تحریم در ایران)
-        final ping1 = await _flutterV2ray
-            .getServerDelay(
-              config: config,
-              url: 'https://cp.cloudflare.com/generate_204',
-            )
-            .timeout(_kPingTimeout, onTimeout: () => -1);
-
-        if (ping1 > 0) return ping1;
-
-        // تست با gstatic
-        final ping2 = await _flutterV2ray
-            .getServerDelay(
-              config: config,
-              url: 'https://www.gstatic.com/generate_204',
-            )
-            .timeout(const Duration(seconds: 3), onTimeout: () => -1);
-
-        if (ping2 > 0) return ping2;
-      } catch (_) {}
-    }
-
-    // fallback: پینگ TCP مستقیم به مقصد
+    // استخراج هاست و پورت سرور در صورت نیاز
     String? targetHost = host;
     int? targetPort = port;
-
-    if ((targetHost == null || targetPort == null) && configUri.isNotEmpty) {
+    if (targetHost == null || targetHost.isEmpty || targetPort == null || targetPort <= 0) {
       final parsed = _extractHostPort(configUri);
       if (parsed != null) {
-        targetHost ??= parsed.host;
-        targetPort ??= parsed.port;
+        targetHost = parsed.host;
+        targetPort = parsed.port;
       }
     }
 
+    // ۱. پیش‌بررسی سوکت TCP با تایم‌اوت ۱.۲ ثانیه (دقیقاً مثل SpeedtestManager.socketConnectTime در v2rayNG)
     if (targetHost != null && targetHost.isNotEmpty && targetPort != null && targetPort > 0) {
-      final tcpDelay = await _tcpPing(targetHost, targetPort);
-      if (tcpDelay > 0) return tcpDelay;
+      final isAlive = await _quickTcpCheck(targetHost, targetPort);
+      if (!isAlive) {
+        return -1; // سرور در دسترس نیست؛ هسته سنگین V2Ray بیهوده اجرا نمی‌شود
+      }
     }
+
+    // ۲. اندازه‌گیری Real Delay واقعی توسط Libv2ray.measureOutboundDelay
+    try {
+      final V2RayURL v2rayURL = FlutterV2ray.parseFromURL(configUri);
+      final config = v2rayURL.getFullConfiguration();
+
+      // تست اول با gstatic (پیش‌فرض رسمی v2rayNG: DELAY_TEST_URL)
+      final ping1 = await _flutterV2ray
+          .getServerDelay(
+            config: config,
+            url: 'https://www.gstatic.com/generate_204',
+          )
+          .timeout(const Duration(milliseconds: 3500), onTimeout: () => -1);
+
+      if (ping1 > 0) return ping1;
+
+      // تست دوم با google (پیش‌فرض ثانویه v2rayNG: DELAY_TEST_URL2)
+      final ping2 = await _flutterV2ray
+          .getServerDelay(
+            config: config,
+            url: 'https://www.google.com/generate_204',
+          )
+          .timeout(const Duration(milliseconds: 2500), onTimeout: () => -1);
+
+      if (ping2 > 0) return ping2;
+
+      // تست سوم با cloudflare در صورت اختلال گوگل
+      final ping3 = await _flutterV2ray
+          .getServerDelay(
+            config: config,
+            url: 'https://cp.cloudflare.com/generate_204',
+          )
+          .timeout(const Duration(milliseconds: 2500), onTimeout: () => -1);
+
+      if (ping3 > 0) return ping3;
+    } catch (_) {}
 
     return -1;
   }
 
-  /// پینگ سرور متصل فعلی — چندمرحله‌ای برای جلوگیری از خطای اشتباه
+  /// پینگ سرور متصل فعلی از داخل تونل فعال
   Future<int> getConnectedDelay() async {
     if (!_initialized) return -1;
 
-    // ۱. تست از طریق هسته متصل با کلودفلر
     try {
-      final ping = await _flutterV2ray
-          .getConnectedServerDelay(url: 'https://cp.cloudflare.com/generate_204')
-          .timeout(const Duration(seconds: 4), onTimeout: () => -1);
-      if (ping > 0) return ping;
-    } catch (_) {}
-
-    // ۲. تست از طریق هسته متصل با gstatic
-    try {
-      final ping = await _flutterV2ray
+      final ping1 = await _flutterV2ray
           .getConnectedServerDelay(url: 'https://www.gstatic.com/generate_204')
-          .timeout(const Duration(seconds: 3), onTimeout: () => -1);
-      if (ping > 0) return ping;
+          .timeout(const Duration(milliseconds: 3000), onTimeout: () => -1);
+      if (ping1 > 0) return ping1;
+
+      final ping2 = await _flutterV2ray
+          .getConnectedServerDelay(url: 'https://www.google.com/generate_204')
+          .timeout(const Duration(milliseconds: 2500), onTimeout: () => -1);
+      if (ping2 > 0) return ping2;
     } catch (_) {}
 
-    // ۳. تست مستقیم HTTP از داخل تونل فعال
+    // تست تکمیلی HTTP مستقیم از داخل تونل فعال
     try {
       final sw = Stopwatch()..start();
       final client = http.Client();
       final res = await client
           .get(Uri.parse('https://cp.cloudflare.com/generate_204'))
-          .timeout(const Duration(seconds: 3));
+          .timeout(const Duration(milliseconds: 2500));
       sw.stop();
       client.close();
       if (res.statusCode == 204 || res.statusCode == 200) {
@@ -226,6 +234,20 @@ class VpnService {
     } catch (_) {}
 
     return -1;
+  }
+
+  Future<bool> _quickTcpCheck(String host, int port) async {
+    try {
+      final socket = await Socket.connect(
+        host,
+        port,
+        timeout: const Duration(milliseconds: 1200),
+      );
+      socket.destroy();
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// استخراج هاست و پورت از انواع لینک‌های کانفیگ
@@ -263,18 +285,7 @@ class VpnService {
     return null;
   }
 
-  /// پینگ سریع سوکت TCP
-  Future<int> _tcpPing(String host, int port, {Duration timeout = const Duration(seconds: 3)}) async {
-    try {
-      final sw = Stopwatch()..start();
-      final socket = await Socket.connect(host, port, timeout: timeout);
-      sw.stop();
-      socket.destroy();
-      return sw.elapsedMilliseconds;
-    } catch (_) {
-      return -1;
-    }
-  }
+
 
   /// پینگ دسته‌ای سرورها با کنترل همزمانی
   Future<Map<String, int>> pingAll(Map<String, String> serverConfigs) async {

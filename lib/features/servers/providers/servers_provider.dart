@@ -4,6 +4,7 @@ import '../../../core/services/api_service.dart';
 import '../../../core/services/vpn_service.dart';
 import '../data/models/server_models.dart';
 import '../data/repository/servers_repository.dart';
+import '../../auth/data/models/auth_models.dart';
 import '../../auth/providers/auth_provider.dart';
 
 // ── Repository + VpnService providers ─────────────────────
@@ -24,6 +25,13 @@ class ServersNotifier extends StateNotifier<ServersState> {
   ServersNotifier(this._repo, this._vpn, this._ref)
       : super(const ServersState()) {
     loadServers();
+    // بروزرسانی سرورها هنگام سوئیچ اکانت یا تغییر کاربر
+    _ref.listen<UserModel?>(currentUserProvider, (prev, next) {
+      if (prev?.username != next?.username || prev?.token != next?.token) {
+        state = const ServersState();
+        loadServers();
+      }
+    });
   }
 
   // ── Load ─────────────────────────────────────────────────
@@ -77,7 +85,7 @@ class ServersNotifier extends StateNotifier<ServersState> {
 
   Future<void> refresh() => loadServers();
 
-  // ── Ping همه سرورها به صورت کنترل‌شده ────────────────────
+  // ── Real Delay همه سرورها منطبق بر رفتار v2rayNG ─────────────
 
   Future<void> fetchPings() async {
     if (state.groups.isEmpty) return;
@@ -85,29 +93,39 @@ class ServersNotifier extends StateNotifier<ServersState> {
     state = state.copyWith(isPinging: true);
 
     final allServers = state.groups.expand((g) => g.locations).toList();
+    if (allServers.isEmpty) {
+      state = state.copyWith(isPinging: false);
+      return;
+    }
     await _vpn.initialize();
 
-    final Map<String, int> pings = {};
-    const batchSize = 3;
-    for (int i = 0; i < allServers.length; i += batchSize) {
-      final batch = allServers.sublist(
-        i,
-        i + batchSize > allServers.length ? allServers.length : i + batchSize,
-      );
-      final batchResults = await Future.wait(
-        batch.map((s) async {
-          final ping = await _vpn.getDelay(
-            s.configUri,
-            host: s.host.isNotEmpty ? s.host : null,
-            port: s.port > 0 ? s.port : null,
-          );
-          return MapEntry(s.id, ping);
-        }),
-      );
-      pings.addEntries(batchResults);
+    final Map<String, int> livePings = Map.from(state.pings);
+    const concurrency = 12;
+    int index = 0;
+
+    Future<void> worker() async {
+      while (true) {
+        final i = index++;
+        if (i >= allServers.length) break;
+        final s = allServers[i];
+        final ping = await _vpn.getDelay(
+          s.configUri,
+          host: s.host.isNotEmpty ? s.host : null,
+          port: s.port > 0 ? s.port : null,
+        );
+        livePings[s.id] = ping;
+        // بروزرسانی بلادرنگ UI برای هر سرور به محض آماده شدن پینگ (زنده مثل v2rayNG)
+        state = state.copyWith(pings: Map.from(livePings));
+      }
     }
 
-    state = state.copyWith(isPinging: false, pings: pings);
+    final workers = List.generate(
+      concurrency.clamp(1, allServers.length),
+      (_) => worker(),
+    );
+    await Future.wait(workers);
+
+    state = state.copyWith(isPinging: false, pings: livePings);
   }
 
   // ── Smart select — بهترین پینگ ───────────────────────────

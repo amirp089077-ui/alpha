@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/services/api_service.dart';
+import '../../../core/services/usage_service.dart';
 import '../../../features/home/providers/home_provider.dart';
 import '../data/models/auth_models.dart';
 import '../data/repository/auth_repository.dart';
@@ -84,6 +85,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final vpn = _ref.read(vpnServiceProvider);
       vpn.disconnect();
+    } catch (_) {}
+
+    try {
+      _ref.read(usageServiceProvider).reset();
     } catch (_) {}
 
     await _repo.logout();

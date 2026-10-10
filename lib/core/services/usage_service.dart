@@ -23,6 +23,7 @@ class UsageService {
 
   Timer? _timer;
 
+  String _currentUsername = '';
   int _lastUpload   = 0;
   int _lastDownload = 0;
   int _pendingBytes = 0;
@@ -34,32 +35,52 @@ class UsageService {
 
   VoidCallback? onLimitReached;
 
-  // ── Start — async تا data race نباشه ─────────────────────
+  String _lastReportedKey(String username) =>
+      username.isNotEmpty ? 'usage_last_reported_${username}_gb' : _kLastReportedUsed;
+  String _pendingBytesKey(String username) =>
+      username.isNotEmpty ? 'usage_pending_bytes_$username' : _kPendingBytes;
+  String _lastReportTimeKey(String username) =>
+      username.isNotEmpty ? 'usage_last_report_$username' : _kLastReportTime;
 
-  // تسک ۱: start رو async کردیم تا lastReported رو await کنه
-  // قبلاً: .then() همیشه توسط خط بعدی `_usedGb = usedGb` overwrite می‌شد
+  /// پاک‌سازی کامل وضعیت سرویس در زمان خروج یا تغییر اکانت
+  void reset({String? newUsername}) {
+    _timer?.cancel();
+    _timer = null;
+    _currentUsername = newUsername ?? '';
+    _lastUpload = 0;
+    _lastDownload = 0;
+    _pendingBytes = 0;
+    _reporting = false;
+    _limitGb = 0;
+    _usedGb = 0;
+    onLimitReached = null;
+  }
+
+  // ── Start ────────────────────────────────────────────────
   Future<void> start({
     required double limitGb,
     required double usedGb,
     required VoidCallback onLimitReached,
+    String? username,
   }) async {
+    if (username != null && username.isNotEmpty && _currentUsername != username) {
+      reset(newUsername: username);
+    } else if (username != null && username.isNotEmpty) {
+      _currentUsername = username;
+    }
+
     _limitGb            = limitGb;
     this.onLimitReached = onLimitReached;
     _lastUpload         = 0;
     _lastDownload       = 0;
     _reporting          = false;
 
-    // تسک ۱: await کن تا lastReported درست لود بشه
     final prefs        = await SharedPreferences.getInstance();
-    final lastReported = prefs.getDouble(_kLastReportedUsed) ?? 0.0;
+    final lastReported = prefs.getDouble(_lastReportedKey(_currentUsername)) ?? 0.0;
+    final savedPending = prefs.getInt(_pendingBytesKey(_currentUsername)) ?? 0;
 
-    // تسک ۳: pending bytes از session قبلی رو restore کن
-    final savedPending = prefs.getInt(_kPendingBytes) ?? 0;
-
-    // usedGb باید حداقل برابر آخرین مقدار ارسالی به API باشه
+    // usedGb برای همین کاربر
     _usedGb = [usedGb, lastReported].reduce((a, b) => a > b ? a : b);
-
-    // pending bytes از کرش قبلی رو اضافه کن
     _pendingBytes = savedPending;
 
     _timer?.cancel();
@@ -67,28 +88,24 @@ class UsageService {
   }
 
   // ── Stop + flush فوری ────────────────────────────────────
-
-  // تسک ۳: موقع disconnect، pending bytes رو فوری flush کن
   Future<void> stop({bool flush = false}) async {
     _timer?.cancel();
-    _timer   = null;
+    _timer = null;
 
     if (flush && _pendingBytes > 0) {
       await _tick(force: true);
     }
 
-    // pending bytes رو persist کن (اگه flush ناموفق بود)
+    final prefs = await SharedPreferences.getInstance();
+    final pendingKey = _pendingBytesKey(_currentUsername);
     if (_pendingBytes > 0) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_kPendingBytes, _pendingBytes);
+      await prefs.setInt(pendingKey, _pendingBytes);
     } else {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_kPendingBytes);
+      await prefs.remove(pendingKey);
     }
   }
 
   // ── updateStats ───────────────────────────────────────────
-
   void updateStats(VpnStats stats) {
     final deltaUp   = (stats.upload   - _lastUpload).clamp(0, double.maxFinite).toInt();
     final deltaDown = (stats.download - _lastDownload).clamp(0, double.maxFinite).toInt();
@@ -96,8 +113,6 @@ class UsageService {
     _lastDownload = stats.download;
     _pendingBytes += deltaUp + deltaDown;
 
-    // تسک ۳: هر ۱۰ ثانیه یه بار pending رو persist کن
-    // (جلوگیری از از دست رفتن bytes در صورت crash)
     _maybePersistPending();
   }
 
@@ -106,20 +121,22 @@ class UsageService {
     _persistCounter++;
     if (_persistCounter % 10 == 0) {
       SharedPreferences.getInstance().then((prefs) {
-        prefs.setInt(_kPendingBytes, _pendingBytes);
+        prefs.setInt(_pendingBytesKey(_currentUsername), _pendingBytes);
       });
     }
   }
 
-  void updateLimit({required double limitGb, required double usedGb}) {
+  void updateLimit({required double limitGb, required double usedGb, String? username}) {
+    if (username != null && username.isNotEmpty && _currentUsername != username) {
+      reset(newUsername: username);
+    } else if (username != null && username.isNotEmpty) {
+      _currentUsername = username;
+    }
     _limitGb = limitGb;
-    // فقط اگه مقدار جدید بیشتره update کن (جلوگیری از رفتن به عقب)
-    if (usedGb > _usedGb) _usedGb = usedGb;
+    _usedGb = usedGb;
   }
 
-  // ── getter برای تسک ۲ ────────────────────────────────────
-
-  /// مقدار دقیق used_gb که UsageService داره — شامل pending session
+  // ── getters ──────────────────────────────────────────────
   double get currentUsedGb {
     final pendingGb = _pendingBytes / (1024 * 1024 * 1024);
     return _usedGb + pendingGb;
@@ -129,7 +146,6 @@ class UsageService {
       _limitGb > 0 && currentUsedGb >= _limitGb;
 
   // ── Tick ─────────────────────────────────────────────────
-
   Future<void> _tick({bool force = false}) async {
     if (_pendingBytes <= 0 && !force) return;
     if (_reporting) return;
@@ -144,11 +160,9 @@ class UsageService {
       _usedGb       = newUsedGb;
       _pendingBytes = 0;
 
-      // پاک کردن pending از SharedPreferences بعد از flush موفق
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_kPendingBytes);
+      await prefs.remove(_pendingBytesKey(_currentUsername));
 
-      // چک سقف
       if (_limitGb > 0 && _usedGb >= _limitGb) {
         onLimitReached?.call();
       }
@@ -160,12 +174,10 @@ class UsageService {
   }
 
   // ── گزارش به API ──────────────────────────────────────────
-
   Future<void> _reportToApi({required double usedGb}) async {
     final prefs        = await SharedPreferences.getInstance();
-    final lastReported = prefs.getDouble(_kLastReportedUsed) ?? 0.0;
+    final lastReported = prefs.getDouble(_lastReportedKey(_currentUsername)) ?? 0.0;
 
-    // مطمئن شو used_gb هرگز کاهش پیدا نمی‌کنه
     final safeUsedGb  = usedGb < lastReported ? lastReported : usedGb;
     final remainingGb = (_limitGb - safeUsedGb).clamp(0.0, double.maxFinite);
 
@@ -178,13 +190,16 @@ class UsageService {
       auth: true,
     );
 
-    await prefs.setDouble(_kLastReportedUsed, safeUsedGb);
-    await prefs.setInt(_kLastReportTime, DateTime.now().millisecondsSinceEpoch);
+    await prefs.setDouble(_lastReportedKey(_currentUsername), safeUsedGb);
+    await prefs.setInt(_lastReportTimeKey(_currentUsername), DateTime.now().millisecondsSinceEpoch);
   }
 
-  static Future<double> getLocalUsedGb() async {
+  static Future<double> getLocalUsedGb([String? username]) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getDouble(_kLastReportedUsed) ?? 0.0;
+    final key = (username != null && username.isNotEmpty)
+        ? 'usage_last_reported_${username}_gb'
+        : 'usage_last_reported_used_gb';
+    return prefs.getDouble(key) ?? 0.0;
   }
 }
 

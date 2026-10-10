@@ -6,6 +6,7 @@ import '../../../core/services/usage_service.dart';
 import '../data/models/home_models.dart';
 import '../../servers/data/models/server_models.dart';
 import '../../servers/providers/servers_provider.dart';
+import '../../auth/data/models/auth_models.dart';
 import '../../auth/providers/auth_provider.dart';
 
 // ── VpnService provider ────────────────────────────────────
@@ -35,26 +36,48 @@ class HomeNotifier extends StateNotifier<HomeState> {
   // ─────────────────────────────────────────────────────────
 
   Future<void> _init() async {
-    _syncFromAuth();
+    _syncFromUser(_ref.read(currentUserProvider));
     await _vpn.initialize();
     _statusSub = _vpn.statusStream.listen(_onVpnStatus);
     _statsSub  = _vpn.statsStream.listen(_onVpnStats);
+
+    // گوش دادن به تغییر کاربر (ورود، خروج، یا سوئیچ اکانت)
+    _ref.listen<UserModel?>(currentUserProvider, (previous, next) {
+      if (previous?.username != next?.username || previous?.token != next?.token) {
+        _syncFromUser(next);
+      }
+    });
   }
 
-  void _syncFromAuth() {
-    final user = _ref.read(currentUserProvider);
-    if (user != null) {
-      state = state.copyWith(
-        remainingGb:   user.remainingGb,
-        remainingDays: user.remainingDays,
-      );
-      // آپدیت سقف در UsageService
-      _usage.updateLimit(
-        limitGb: user.totalQuotaGb,
-        usedGb:  user.usedGb,
-      );
+  void _syncFromUser(UserModel? user) {
+    if (user == null) {
+      if (state.isConnected || state.isConnecting) {
+        _vpn.disconnect();
+      }
+      _usage.reset();
+      state = const HomeState();
+      return;
     }
+
+    _usage.reset(newUsername: user.username);
+    _usage.updateLimit(
+      limitGb:  user.totalQuotaGb,
+      usedGb:   user.usedGb,
+      username: user.username,
+    );
+
+    state = state.copyWith(
+      remainingGb:       user.remainingGb,
+      remainingDays:     user.remainingDays,
+      connectionSeconds: 0,
+      uploadBytes:       0,
+      downloadBytes:     0,
+      pingMs:            0,
+      errorMessage:      null,
+    );
   }
+
+  void _syncFromAuth() => _syncFromUser(_ref.read(currentUserProvider));
 
   // ─────────────────────────────────────────────────────────
   // Callbacks از VpnService
@@ -64,11 +87,13 @@ class HomeNotifier extends StateNotifier<HomeState> {
     state = state.copyWith(vpnStatus: status, errorMessage: null);
 
     if (status == VpnConnectionStatus.connected) {
+      final user = _ref.read(currentUserProvider);
       _startSecTimer();
       _startPingTimer();
       _usage.start(
-        limitGb:        _ref.read(currentUserProvider)?.totalQuotaGb ?? 0,
-        usedGb:         _ref.read(currentUserProvider)?.usedGb       ?? 0,
+        limitGb:        user?.totalQuotaGb ?? 0,
+        usedGb:         user?.usedGb       ?? 0,
+        username:       user?.username,
         onLimitReached: _onLimitReached,
       );
     } else if (status == VpnConnectionStatus.disconnected ||
