@@ -99,14 +99,11 @@ class VpnService {
     try {
       _emit(VpnConnectionStatus.connecting);
 
-      final endpoint = V2rayConfigHelper.parseEndpoint(configUri);
+      final parser = V2rayConfigHelper.parseConfig(configUri);
       final String remark = (serverName != null && serverName.isNotEmpty)
           ? serverName
-          : (endpoint.remark.isNotEmpty ? endpoint.remark : 'Alpha VPN');
-      final String config = V2rayConfigHelper.buildV2rayConfig(
-        configUri,
-        customRemark: remark,
-      );
+          : (parser.remark.isNotEmpty ? parser.remark : 'Alpha VPN');
+      final String config = parser.getFullConfiguration();
 
       if (await _flutterV2ray.requestPermission()) {
         _flutterV2ray.startV2Ray(
@@ -137,8 +134,7 @@ class VpnService {
 
   static const _kPingTimeout = Duration(seconds: 8);
 
-  /// پینگ یک سرور — ms برمیگردونه، -1 اگه مرده یا timeout شد
-  /// استفاده از کانفیگ استاندارد هسته v2rayNG با Real Delay
+  /// پینگ یک سرور — طبق مستندات رسمی flutter_v2ray با متد getServerDelay
   Future<int> getDelay(
     String configUri, {
     String? host,
@@ -146,7 +142,8 @@ class VpnService {
   }) async {
     if (!_initialized) await initialize();
     try {
-      final config = V2rayConfigHelper.buildV2rayConfig(configUri);
+      final parser = V2rayConfigHelper.parseConfig(configUri);
+      final config = parser.getFullConfiguration();
 
       final ping = await _flutterV2ray
           .getServerDelay(config: config)
