@@ -3,6 +3,7 @@ import '../theme/theme_extension.dart';
 import '../theme/typography.dart';
 import 'glass_card.dart';
 import 'status_badge.dart';
+import 'country_flag_badge.dart';
 import '../../features/servers/data/models/server_models.dart';
 
 /// Top-level server group row (country + location count)
@@ -90,18 +91,19 @@ class ServerGroupTile extends StatelessWidget {
                 const SizedBox(width: 14),
 
                 // ── Flag ───────────────────────────────────────────────
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: const BoxDecoration(shape: BoxShape.circle),
-                  clipBehavior: Clip.antiAlias,
-                  alignment: Alignment.center,
-                  child: Text(
-                    group.isSpecial ? '🌐' : group.flagEmoji,
-                    style: const TextStyle(fontSize: 32),
-                    textDirection: TextDirection.ltr,
-                  ),
-                ),
+                group.isSpecial
+                    ? Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(shape: BoxShape.circle),
+                        alignment: Alignment.center,
+                        child: const Text('🌐', style: TextStyle(fontSize: 28)),
+                      )
+                    : CountryFlagBadge(
+                        countryCodeOrName: group.country,
+                        flagEmoji: group.flagEmoji,
+                        size: 42,
+                      ),
               ],
             ),
           ),
@@ -208,10 +210,10 @@ class ServerLocationTile extends StatelessWidget {
               const SizedBox(width: 14),
 
               // Flag
-              Text(
-                location.flagEmoji,
-                style: const TextStyle(fontSize: 28),
-                textDirection: TextDirection.ltr,
+              CountryFlagBadge(
+                countryCodeOrName: location.country,
+                flagEmoji: location.flagEmoji,
+                size: 32,
               ),
             ],
           ),
@@ -228,15 +230,28 @@ class SmartServerTile extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     this.bestPingMs = 0,
+    this.isPinging = false,
+    this.fastestServerName,
   });
 
   final bool isSelected;
   final VoidCallback onTap;
   final int bestPingMs;
+  final bool isPinging;
+  final String? fastestServerName;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
+
+    String subtitleText;
+    if (isPinging) {
+      subtitleText = 'در حال تست واقعی سرورها…';
+    } else if (fastestServerName != null && bestPingMs > 0) {
+      subtitleText = 'سریع‌ترین الان: $fastestServerName (${bestPingMs}ms)';
+    } else {
+      subtitleText = 'اتصال خودکار به کمترین پینگ';
+    }
 
     return GlassCard(
       gradientBorder: true,
@@ -274,7 +289,17 @@ class SmartServerTile extends StatelessWidget {
             const SizedBox(width: 12),
 
             // Ping badge if pinging done
-            if (bestPingMs > 0) ...[
+            if (isPinging) ...[
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(colors.mint),
+                ),
+              ),
+              const SizedBox(width: 8),
+            ] else if (bestPingMs > 0) ...[
               _PingBadge(pingMs: bestPingMs, colors: colors),
               const SizedBox(width: 8),
             ],
@@ -285,15 +310,27 @@ class SmartServerTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    'سرور هوشمند',
-                    style: AppTypography.title2.copyWith(color: colors.textPrimary),
-                    textDirection: TextDirection.rtl,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        'سرور هوشمند',
+                        style: AppTypography.title2.copyWith(color: colors.textPrimary),
+                        textDirection: TextDirection.rtl,
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        '✦',
+                        style: TextStyle(color: Color(0xFFE05A38), fontSize: 13),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'اتصال خودکار به کمترین پینگ',
-                    style: AppTypography.caption.copyWith(color: colors.textSecondary),
+                    subtitleText,
+                    style: AppTypography.caption.copyWith(
+                      color: isPinging ? colors.mint : colors.textSecondary,
+                    ),
                     textDirection: TextDirection.rtl,
                   ),
                 ],
@@ -301,16 +338,27 @@ class SmartServerTile extends StatelessWidget {
             ),
             const SizedBox(width: 14),
 
-            // Smart icon
+            // Smart icon (Glowing bolt gradient)
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: colors.brandGradient,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFE05A38), Color(0xFF0E8A98)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0E8A98).withValues(alpha: 0.25),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 22),
+              child: const Icon(Icons.bolt_rounded,
+                  color: Colors.white, size: 26),
             ),
           ],
         ),

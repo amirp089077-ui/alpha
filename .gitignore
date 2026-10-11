@@ -51,3 +51,4 @@ app.*.map.json
 backend/
 front/
 semantic-review/
+*.apk

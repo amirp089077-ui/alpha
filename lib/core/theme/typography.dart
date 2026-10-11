@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 
 class AppTypography {
-  // همه فونت‌ها از IranSans Bold استفاده می‌کنن
-  static const _font = 'IranSans';
+  // استفاده از فونت رسمی وزیرمتن با ارقام فارسی (Vazirmatn FD)
+  static const _font = 'Vazirmatn';
 
   // ─── Scale ────────────────────────────────────────────────
 
   static const display = TextStyle(
     fontFamily: _font,
     fontSize: 26,
-    fontWeight: FontWeight.w700,
-    height: 1.1,
+    fontWeight: FontWeight.w800,
+    height: 1.2,
     letterSpacing: 0,
   );
 
   static const timer = TextStyle(
     fontFamily: _font,
-    fontSize: 22,
-    fontWeight: FontWeight.w700,
-    height: 1.1,
+    fontSize: 24,
+    fontWeight: FontWeight.w800,
+    height: 1.15,
     fontFeatures: [FontFeature.tabularFigures()],
   );
 
@@ -39,14 +39,14 @@ class AppTypography {
   static const title2 = TextStyle(
     fontFamily: _font,
     fontSize: 15,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     height: 1.4,
   );
 
   static const title3 = TextStyle(
     fontFamily: _font,
     fontSize: 14,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w600,
     height: 1.4,
   );
 
@@ -54,6 +54,13 @@ class AppTypography {
     fontFamily: _font,
     fontSize: 13,
     fontWeight: FontWeight.w400,
+    height: 1.5,
+  );
+
+  static const bodyMedium = TextStyle(
+    fontFamily: _font,
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
     height: 1.5,
   );
 
@@ -67,8 +74,8 @@ class AppTypography {
   static const micro = TextStyle(
     fontFamily: _font,
     fontSize: 10,
-    fontWeight: FontWeight.w400,
-    height: 1.5,
+    fontWeight: FontWeight.w500,
+    height: 1.4,
   );
 
   // ─── Latin logotype ───────────────────────────────────────
@@ -76,7 +83,7 @@ class AppTypography {
   static const logoLatin = TextStyle(
     fontFamily: _font,
     fontSize: 20,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w900,
     height: 1.1,
     letterSpacing: 1.5,
   );
@@ -84,7 +91,7 @@ class AppTypography {
   static const logoLatinSmall = TextStyle(
     fontFamily: _font,
     fontSize: 13,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     letterSpacing: 1.2,
   );
 }

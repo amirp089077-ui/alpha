@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/l10n/strings.dart';
 import '../../core/router/app_router.dart';
@@ -76,38 +76,45 @@ class _FloatingNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(40),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          height: 72,
-          decoration: BoxDecoration(
-            color: colors.navGlass,
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(color: colors.navBorder, width: 1),
+    return Center(
+      child: Container(
+        height: 64.h,
+        margin: EdgeInsets.symmetric(horizontal: 16.w),
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: colors.isLight ? Colors.white : colors.navGlass,
+          borderRadius: BorderRadius.circular(36.r),
+          border: Border.all(
+            color: colors.isLight ? const Color(0xFFE2EDF0) : colors.navBorder,
+            width: 1.2,
           ),
-          child: Row(
-            children: List.generate(tabs.length, (i) {
-              final isActive = i == currentIndex;
-              final tab = tabs[i];
-              return Expanded(
-                child: _NavItem(
-                  tab: tab,
-                  isActive: isActive,
-                  onTap: () => onTap(i),
-                  colors: colors,
-                ),
-              );
-            }),
-          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: colors.isLight ? 0.08 : 0.25),
+              blurRadius: 20.r,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(tabs.length, (i) {
+            final isActive = i == currentIndex;
+            final tab = tabs[i];
+            return _NavItem(
+              tab: tab,
+              isActive: isActive,
+              onTap: () => onTap(i),
+              colors: colors,
+            );
+          }),
         ),
       ),
     );
   }
 }
 
-// ─── Individual nav item ──────────────────────────────────────────────────────
+// ─── Individual nav item (کپسول متحرک گرادینت برای تب فعال) ───────────────────
 class _NavItem extends StatelessWidget {
   const _NavItem({
     required this.tab,
@@ -127,32 +134,43 @@ class _NavItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 250),
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
-        margin: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          gradient: isActive ? colors.brandGradient : null,
-          borderRadius: BorderRadius.circular(32),
+        padding: EdgeInsets.symmetric(
+          horizontal: isActive ? 16.w : 12.w,
+          vertical: 8.h,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        decoration: BoxDecoration(
+          gradient: isActive
+              ? const LinearGradient(
+                  colors: [Color(0xFF0E8A98), Color(0xFFE05A38)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(24.r),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
+            if (isActive) ...[
+              Text(
+                tab.label,
+                style: AppTypography.title3.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13.sp,
+                ),
+                textDirection: TextDirection.rtl,
+              ),
+              SizedBox(width: 6.w),
+            ],
             Icon(
               isActive ? tab.activeIcon : tab.icon,
-              size: 22,
-              color: isActive ? Colors.white : colors.textTertiary,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              tab.label,
-              style: AppTypography.micro.copyWith(
-                color: isActive ? Colors.white : colors.textTertiary,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w400,
-                fontSize: 11,
-              ),
-              textDirection: TextDirection.rtl,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+              size: 22.r,
+              color: isActive
+                  ? Colors.white
+                  : (colors.isLight ? const Color(0xFF4A6572) : colors.textTertiary),
             ),
           ],
         ),

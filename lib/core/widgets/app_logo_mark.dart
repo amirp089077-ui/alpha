@@ -74,10 +74,16 @@ class AppLogoMark extends StatelessWidget {
             painter: _RingPainter(ringWidth: ringWidth),
           ),
 
-          // ── Inner "A" symbol ─────────────────────────────────────────
-          CustomPaint(
-            size: Size(size * 0.6, size * 0.6),
-            painter: _AlphaSymbolPainter(colors: colors),
+          // ── Inner 3D Alpha emblem ─────────────────────────────────────
+          Image.asset(
+            'assets/images/alpha_emblem.png',
+            width: size * 0.72,
+            height: size * 0.72,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => CustomPaint(
+              size: Size(size * 0.6, size * 0.6),
+              painter: _AlphaSymbolPainter(colors: colors),
+            ),
           ),
         ],
       ),

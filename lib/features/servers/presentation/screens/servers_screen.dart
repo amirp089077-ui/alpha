@@ -129,8 +129,10 @@ class _ServersList extends ConsumerWidget {
       children: [
         // Smart server
         SmartServerTile(
-          isSelected:  state.selectedServerId == 'smart' || state.selectedServerId == null,
-          bestPingMs:  bestPing,
+          isSelected:        state.selectedServerId == 'smart' || state.selectedServerId == null,
+          bestPingMs:        bestPing,
+          isPinging:         state.isPinging,
+          fastestServerName: bestServer?.displayName,
           onTap: () {
             AppHaptics.selection();
             ref.read(serversProvider.notifier).selectSmart();

@@ -80,10 +80,10 @@ class VpnService {
       },
     );
 
-    // دقیقاً مثل مثال رسمی
+    // آیکون اختصاصی نوتیفیکیشن وضعیت اتصال
     await _flutterV2ray.initializeV2Ray(
-      notificationIconResourceType: 'mipmap',
-      notificationIconResourceName: 'ic_launcher',
+      notificationIconResourceType: 'drawable',
+      notificationIconResourceName: 'ic_stat_shield',
     );
     _initialized = true;
   }
@@ -101,8 +101,8 @@ class VpnService {
 
       final parser = V2rayConfigHelper.parseConfig(configUri);
       final String remark = (serverName != null && serverName.isNotEmpty)
-          ? serverName
-          : (parser.remark.isNotEmpty ? parser.remark : 'Alpha VPN');
+          ? '$serverName  ·  متصل'
+          : (parser.remark.isNotEmpty ? '${parser.remark}  ·  متصل' : 'Alpha VPN  ·  متصل');
       final String config = parser.getFullConfiguration();
 
       if (await _flutterV2ray.requestPermission()) {

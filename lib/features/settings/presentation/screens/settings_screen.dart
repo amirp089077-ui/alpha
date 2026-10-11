@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/l10n/strings.dart';
@@ -59,8 +59,14 @@ class SettingsScreen extends ConsumerWidget {
                               color: colors.cardBorderStrong, width: 1.5),
                           color: colors.card,
                         ),
-                        child: const Center(
-                          child: Text('✦', style: TextStyle(fontSize: 22)),
+                        child: ClipOval(
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: Image.asset(
+                              'assets/images/alpha_emblem.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
                         ),
                       ),
                       const Spacer(),
