@@ -92,35 +92,54 @@ class ServersNotifier extends StateNotifier<ServersState> {
 
     state = state.copyWith(isPinging: true);
 
-    final allServers = state.groups.expand((g) => g.locations).toList();
-    if (allServers.isEmpty) {
+    // ۱. چیدمان عادلانه (Round-Robin) سرورها بین تمام کشورها:
+    // به این ترتیب از هر کشور اول سرور اول، بعد سرور دوم و... پینگ می‌شود
+    // تا کاربر بلافاصله در همان ثانیه‌های اول برای تمام کشورها پینگ ببیند
+    final List<ServerItem> orderedServers = [];
+    int maxLocs = 0;
+    for (final g in state.groups) {
+      if (g.locations.length > maxLocs) maxLocs = g.locations.length;
+    }
+    for (int step = 0; step < maxLocs; step++) {
+      for (final g in state.groups) {
+        if (step < g.locations.length) {
+          orderedServers.add(g.locations[step]);
+        }
+      }
+    }
+
+    if (orderedServers.isEmpty) {
       state = state.copyWith(isPinging: false);
       return;
     }
+
     await _vpn.initialize();
 
     final Map<String, int> livePings = Map.from(state.pings);
-    const concurrency = 12;
+    
+    // صف بهینه‌سازی‌شده برای پلاگین flutter_v2ray اندروید:
+    // همزمانی کنترل‌شده (concurrency = 2) تا صف تک‌تردی جاوا بلاک و تایم‌اوت نشود
+    const concurrency = 2;
     int index = 0;
 
     Future<void> worker() async {
       while (true) {
         final i = index++;
-        if (i >= allServers.length) break;
-        final s = allServers[i];
+        if (i >= orderedServers.length) break;
+        final s = orderedServers[i];
         final ping = await _vpn.getDelay(
           s.configUri,
           host: s.host.isNotEmpty ? s.host : null,
           port: s.port > 0 ? s.port : null,
         );
         livePings[s.id] = ping;
-        // بروزرسانی بلادرنگ UI برای هر سرور به محض آماده شدن پینگ (زنده مثل v2rayNG)
+        // بروزرسانی بلادرنگ UI برای هر سرور به محض آماده شدن پینگ
         state = state.copyWith(pings: Map.from(livePings));
       }
     }
 
     final workers = List.generate(
-      concurrency.clamp(1, allServers.length),
+      concurrency.clamp(1, orderedServers.length),
       (_) => worker(),
     );
     await Future.wait(workers);

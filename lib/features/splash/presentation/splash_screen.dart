@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -182,8 +182,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       final aParts = a.split('.').map(int.parse).toList();
       final bParts = b.split('.').map(int.parse).toList();
       // طول هر دو رو برابر کن
-      while (aParts.length < 3) aParts.add(0);
-      while (bParts.length < 3) bParts.add(0);
+      while (aParts.length < 3) {
+        aParts.add(0);
+      }
+      while (bParts.length < 3) {
+        bParts.add(0);
+      }
       for (var i = 0; i < 3; i++) {
         if (aParts[i] < bParts[i]) return true;
         if (aParts[i] > bParts[i]) return false;
@@ -216,8 +220,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.build_rounded, color: Colors.orange),
               SizedBox(width: 8),
               Text('سرویس در دسترس نیست'),
@@ -257,8 +261,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.system_update_rounded, color: Colors.teal),
               SizedBox(width: 8),
               Text('آپدیت اجباری'),
@@ -334,8 +338,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         textDirection: TextDirection.rtl,
         child: AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.campaign_rounded, color: Colors.teal),
               SizedBox(width: 8),
               Text('اطلاعیه'),
@@ -492,7 +496,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                 _statusText,
                                 textDirection: TextDirection.rtl,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColorsLight.textTertiary,
                                 ),

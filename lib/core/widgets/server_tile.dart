@@ -16,6 +16,7 @@ class ServerGroupTile extends StatelessWidget {
     required this.onToggle,
     required this.onSelect,
     this.children = const [],
+    this.bestPingMs = 0,
   });
 
   final ServerGroup group;
@@ -24,6 +25,7 @@ class ServerGroupTile extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onSelect;
   final List<Widget> children;
+  final int bestPingMs;
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +56,11 @@ class ServerGroupTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+
+                if (bestPingMs > 0) ...[
+                  _PingBadge(pingMs: bestPingMs, colors: colors),
+                  const SizedBox(width: 8),
+                ],
 
                 // ── Country name + location chip ───────────────────────
                 Expanded(

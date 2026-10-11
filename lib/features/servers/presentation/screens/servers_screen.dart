@@ -148,12 +148,20 @@ class _ServersList extends ConsumerWidget {
           final anySelected = group.locations
               .any((l) => l.id == state.selectedServerId);
 
+          int minPing = 99999;
+          for (final loc in group.locations) {
+            final p = state.pingOf(loc.id);
+            if (p > 0 && p < minPing) minPing = p;
+          }
+          final groupBestPing = minPing < 99999 ? minPing : 0;
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: ServerGroupTile(
               group:      group,
               isExpanded: isExpanded,
               isSelected: anySelected,
+              bestPingMs: groupBestPing,
               onToggle: () {
                 AppHaptics.light();
                 ref.read(serversProvider.notifier).toggleGroup(group.id);

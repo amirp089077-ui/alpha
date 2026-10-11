@@ -81,17 +81,17 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         return _ToneCard(n: n, colors: colors,
             accent: AppColorsShared.orange,
             icon: Icons.warning_amber_rounded,
-            gradientColors: [const Color(0xFFFFF3E0), const Color(0xFFFFF8F0)]);
+            gradientColors: const [Color(0xFFFFF3E0), Color(0xFFFFF8F0)]);
       case NotifType.error:
         return _ToneCard(n: n, colors: colors,
             accent: AppColorsShared.red,
             icon: Icons.error_outline_rounded,
-            gradientColors: [const Color(0xFFFFEBEE), const Color(0xFFFFF5F5)]);
+            gradientColors: const [Color(0xFFFFEBEE), Color(0xFFFFF5F5)]);
       case NotifType.success:
         return _ToneCard(n: n, colors: colors,
             accent: const Color(0xFF22C55E),
             icon: Icons.check_circle_outline_rounded,
-            gradientColors: [const Color(0xFFE8F5E9), const Color(0xFFF1FFF3)]);
+            gradientColors: const [Color(0xFFE8F5E9), Color(0xFFF1FFF3)]);
       default:
         return _AnnouncementCard(n: n, colors: colors);
     }
@@ -538,7 +538,7 @@ class _AnnouncementCard extends StatelessWidget {
                     color: AppColorsLight.teal.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.notifications_rounded,
+                  child: const Icon(Icons.notifications_rounded,
                       color: AppColorsLight.teal, size: 20),
                 ),
                 const SizedBox(width: 12),

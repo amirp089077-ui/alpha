@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_v2ray/flutter_v2ray.dart';
 import 'v2ray_config_helper.dart';
 
@@ -132,13 +133,14 @@ class VpnService {
 
   // ── Delay ─────────────────────────────────────────────────
 
-  static const _kPingTimeout = Duration(seconds: 8);
+  static const _kPingTimeout = Duration(seconds: 4);
 
-  /// پینگ یک سرور — طبق مستندات رسمی flutter_v2ray با متد getServerDelay
+  /// پینگ یک سرور — تست با URL پرسرعت gstatic طبق نسخه مرجع و فال‌بک سوکت
   Future<int> getDelay(
     String configUri, {
     String? host,
     int? port,
+    String testUrl = 'https://www.gstatic.com/generate_204',
   }) async {
     if (!_initialized) await initialize();
     try {
@@ -146,14 +148,29 @@ class VpnService {
       final config = parser.getFullConfiguration();
 
       final ping = await _flutterV2ray
-          .getServerDelay(config: config)
+          .getServerDelay(config: config, url: testUrl)
           .timeout(_kPingTimeout, onTimeout: () => -1);
 
       if (ping > 0) return ping;
-      return -1;
-    } catch (_) {
-      return -1;
+    } catch (_) {}
+
+    // فال‌بک تست اتصال مستقیم به پورت هاست سرور
+    if (host != null && host.isNotEmpty && port != null && port > 0) {
+      try {
+        final stopwatch = Stopwatch()..start();
+        final socket = await Socket.connect(
+          host,
+          port,
+          timeout: const Duration(seconds: 2),
+        );
+        stopwatch.stop();
+        socket.destroy();
+        final ms = stopwatch.elapsedMilliseconds;
+        return ms > 0 ? ms : -1;
+      } catch (_) {}
     }
+
+    return -1;
   }
 
   /// پینگ سرور متصل فعلی — طبق داکیومنت فقط وقتی CONNECTED
