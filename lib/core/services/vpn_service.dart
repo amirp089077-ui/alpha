@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_v2ray/flutter_v2ray.dart';
+import 'v2ray_config_helper.dart';
 
 enum VpnConnectionStatus {
   disconnected,
@@ -98,12 +99,14 @@ class VpnService {
     try {
       _emit(VpnConnectionStatus.connecting);
 
-      final V2RayURL v2rayURL = FlutterV2ray.parseFromURL(configUri);
-      // اگه serverName از اپ پاس شد اونو استفاده کن، وگرنه از config
+      final endpoint = V2rayConfigHelper.parseEndpoint(configUri);
       final String remark = (serverName != null && serverName.isNotEmpty)
           ? serverName
-          : v2rayURL.remark;
-      final String config = v2rayURL.getFullConfiguration();
+          : (endpoint.remark.isNotEmpty ? endpoint.remark : 'Alpha VPN');
+      final String config = V2rayConfigHelper.buildV2rayConfig(
+        configUri,
+        customRemark: remark,
+      );
 
       if (await _flutterV2ray.requestPermission()) {
         _flutterV2ray.startV2Ray(
@@ -135,12 +138,15 @@ class VpnService {
   static const _kPingTimeout = Duration(seconds: 8);
 
   /// پینگ یک سرور — ms برمیگردونه، -1 اگه مرده یا timeout شد
-  /// طبق داکیومنت فقط getServerDelay — بدون TCP fallback
-  Future<int> getDelay(String configUri) async {
+  /// استفاده از کانفیگ استاندارد هسته v2rayNG با Real Delay
+  Future<int> getDelay(
+    String configUri, {
+    String? host,
+    int? port,
+  }) async {
     if (!_initialized) await initialize();
     try {
-      final V2RayURL v2rayURL = FlutterV2ray.parseFromURL(configUri);
-      final config = v2rayURL.getFullConfiguration();
+      final config = V2rayConfigHelper.buildV2rayConfig(configUri);
 
       final ping = await _flutterV2ray
           .getServerDelay(config: config)
