@@ -266,10 +266,15 @@ class _HomeAppBar extends ConsumerWidget {
                     height: 36.r,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: const RadialGradient(
-                        colors: [Color(0xFFE2F7F6), Color(0xFFCEEFF1)],
+                      gradient: RadialGradient(
+                        colors: colors.isLight
+                            ? const [Color(0xFFE2F7F6), Color(0xFFCEEFF1)]
+                            : const [Color(0xFF132D3C), Color(0xFF0F222E)],
                       ),
-                      border: Border.all(color: Colors.white, width: 1.5),
+                      border: Border.all(
+                        color: colors.isLight ? Colors.white : const Color(0x334FB3E0),
+                        width: 1.5,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: const Color(0xFF0E8A98).withValues(alpha: 0.15),
@@ -296,7 +301,7 @@ class _HomeAppBar extends ConsumerWidget {
                             fontFamily: 'Vazirmatn',
                             fontSize: 17.sp,
                             fontWeight: FontWeight.w900,
-                            color: const Color(0xFF0E8A98),
+                            color: colors.isLight ? const Color(0xFF0E8A98) : const Color(0xFF4FB3E0),
                             letterSpacing: 0.8,
                           ),
                         ),
@@ -356,11 +361,14 @@ class _RefreshButton extends StatelessWidget {
             height: 44.r,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE8EEF1), width: 1.2),
+              color: colors.isLight ? Colors.white : const Color(0xFF13222E),
+              border: Border.all(
+                color: colors.isLight ? const Color(0xFFE8EEF1) : const Color(0x26FFFFFF),
+                width: 1.2,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: Colors.black.withValues(alpha: colors.isLight ? 0.04 : 0.25),
                   blurRadius: 8.r,
                   offset: const Offset(0, 3),
                 ),
@@ -373,14 +381,14 @@ class _RefreshButton extends StatelessWidget {
                       height: 18.r,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.2.w,
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF0E8A98),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          colors.isLight ? const Color(0xFF0E8A98) : const Color(0xFF4FB3E0),
                         ),
                       ),
                     )
                   : Icon(
                       Icons.refresh_rounded,
-                      color: const Color(0xFF0F172A),
+                      color: colors.isLight ? const Color(0xFF0F172A) : Colors.white,
                       size: 22.r,
                     ),
             ),
@@ -412,11 +420,14 @@ class _NotifButton extends StatelessWidget {
             height: 44.r,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: const Color(0xFFE8EEF1), width: 1.2),
+              color: colors.isLight ? Colors.white : const Color(0xFF13222E),
+              border: Border.all(
+                color: colors.isLight ? const Color(0xFFE8EEF1) : const Color(0x26FFFFFF),
+                width: 1.2,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
+                  color: Colors.black.withValues(alpha: colors.isLight ? 0.04 : 0.25),
                   blurRadius: 8.r,
                   offset: const Offset(0, 3),
                 ),
@@ -439,7 +450,10 @@ class _NotifButton extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFFEF4444),
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
+                border: Border.all(
+                  color: colors.isLight ? Colors.white : const Color(0xFF13222E),
+                  width: 2,
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: const Color(0xFFEF4444).withValues(alpha: 0.4),
@@ -504,8 +518,8 @@ class _StatusText extends StatelessWidget {
             fontSize: 20.sp,
             fontWeight: FontWeight.w800,
             color: isConnected
-                ? const Color(0xFF0D9488)
-                : (isConnecting ? const Color(0xFFE8590C) : const Color(0xFF64748B)),
+                ? (colors.isLight ? const Color(0xFF0D9488) : const Color(0xFF2DD4BF))
+                : (isConnecting ? const Color(0xFFE8590C) : colors.textSecondary),
           ),
           textDirection: TextDirection.rtl,
         ),
@@ -521,7 +535,7 @@ class _StatusText extends StatelessWidget {
                 fontFamily: 'Vazirmatn',
                 fontSize: 23.sp,
                 fontWeight: FontWeight.w800,
-                color: const Color(0xFF0F172A),
+                color: colors.textPrimary,
                 letterSpacing: 1.0,
               ),
             ),
@@ -538,7 +552,7 @@ class _StatusText extends StatelessWidget {
                   fontFamily: 'Vazirmatn',
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF64748B),
+                  color: colors.textSecondary,
                 ),
               ),
               SizedBox(width: 4.w),
@@ -548,12 +562,12 @@ class _StatusText extends StatelessWidget {
                   fontFamily: 'Vazirmatn',
                   fontSize: 12.sp,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF64748B),
+                  color: colors.textSecondary,
                 ),
               ),
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6.w),
-                child: Text('•', style: TextStyle(color: const Color(0xFF94A3B8), fontSize: 13.sp)),
+                child: Text('•', style: TextStyle(color: colors.textTertiary, fontSize: 13.sp)),
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.5.h),
@@ -577,7 +591,7 @@ class _StatusText extends StatelessWidget {
                   fontFamily: 'Vazirmatn',
                   fontSize: 12.5.sp,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF475569),
+                  color: colors.textPrimary,
                 ),
                 textDirection: TextDirection.rtl,
               ),
@@ -592,7 +606,7 @@ class _StatusText extends StatelessWidget {
               fontFamily: 'Vazirmatn',
               fontSize: 12.sp,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF475569),
+              color: colors.textSecondary,
             ),
             textDirection: TextDirection.rtl,
           ),
@@ -604,7 +618,7 @@ class _StatusText extends StatelessWidget {
               fontFamily: 'Vazirmatn',
               fontSize: 12.5.sp,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF94A3B8),
+              color: colors.textTertiary,
             ),
             textDirection: TextDirection.rtl,
           ),
@@ -653,7 +667,7 @@ class _StatsRow extends StatelessWidget {
                         fontFamily: 'Vazirmatn',
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
+                        color: colors.textPrimary,
                       ),
                       textDirection: TextDirection.rtl,
                     ),
@@ -664,7 +678,7 @@ class _StatsRow extends StatelessWidget {
                         fontFamily: 'Vazirmatn',
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF64748B),
+                        color: colors.textSecondary,
                       ),
                       textDirection: TextDirection.rtl,
                     ),
@@ -684,7 +698,7 @@ class _StatsRow extends StatelessWidget {
           Container(
             width: 1.2.w,
             height: 36.h,
-            color: const Color(0xFFE2E8F0),
+            color: colors.isLight ? const Color(0xFFE2E8F0) : const Color(0x26FFFFFF),
           ),
 
           // آیتم سمت راست: حجم باقیمانده (حلقه سبز)
@@ -701,7 +715,7 @@ class _StatsRow extends StatelessWidget {
                         fontFamily: 'Vazirmatn',
                         fontSize: 16.sp,
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0F172A),
+                        color: colors.textPrimary,
                       ),
                       textDirection: TextDirection.rtl,
                     ),
@@ -712,7 +726,7 @@ class _StatsRow extends StatelessWidget {
                         fontFamily: 'Vazirmatn',
                         fontSize: 11.sp,
                         fontWeight: FontWeight.w500,
-                        color: const Color(0xFF64748B),
+                        color: colors.textSecondary,
                       ),
                       textDirection: TextDirection.rtl,
                     ),
@@ -822,17 +836,27 @@ class _ActiveServerCard extends StatelessWidget {
         margin: EdgeInsets.symmetric(horizontal: 4.w, vertical: 8.h),
         padding: EdgeInsets.symmetric(horizontal: 16.w),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colors.isLight
+              ? Colors.white
+              : const Color(0xFF13222E),
           borderRadius: BorderRadius.circular(28.r),
           border: Border.all(
-            color: isSmart ? const Color(0xFF0E8A98).withValues(alpha: 0.35) : const Color(0xFFE8EEF1),
+            color: isSmart
+                ? (colors.isLight
+                    ? const Color(0xFF0E8A98).withValues(alpha: 0.35)
+                    : const Color(0xFF4FB3E0).withValues(alpha: 0.4))
+                : (colors.isLight
+                    ? const Color(0xFFE8EEF1)
+                    : const Color(0x26FFFFFF)),
             width: 1.2,
           ),
           boxShadow: [
             BoxShadow(
               color: isSmart
-                  ? const Color(0xFF0E8A98).withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.04),
+                  ? (colors.isLight
+                      ? const Color(0xFF0E8A98).withValues(alpha: 0.08)
+                      : const Color(0xFF4FB3E0).withValues(alpha: 0.12))
+                  : Colors.black.withValues(alpha: colors.isLight ? 0.04 : 0.3),
               blurRadius: 14.r,
               offset: const Offset(0, 4),
             ),
@@ -842,7 +866,7 @@ class _ActiveServerCard extends StatelessWidget {
           children: [
             Icon(
               Icons.chevron_left_rounded,
-              color: const Color(0xFF94A3B8),
+              color: colors.textSecondary,
               size: 24.r,
             ),
             const Spacer(),
@@ -871,7 +895,7 @@ class _ActiveServerCard extends StatelessWidget {
                     fontFamily: 'Vazirmatn',
                     fontSize: 14.5.sp,
                     fontWeight: FontWeight.w700,
-                    color: const Color(0xFF0F172A),
+                    color: colors.textPrimary,
                   ),
                   textDirection: TextDirection.rtl,
                 ),
